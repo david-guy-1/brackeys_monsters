@@ -10,7 +10,8 @@ import GameDisplay from "../GameDisplay";
 import { anim_fn_type, button_click_type, display_type, draw_fn_type, gamedata, init_type, point, prop_commands_type, props_to_run, reset_fn_type, sound_fn_type } from "../interfaces";
 import {explode_anim, coin_anim} from "./animations";
 import game from "./game";
-import { lincomb } from "../lines";
+import { lincomb, moveTo } from "../lines";
+import { player_speed } from "./constants";
 
 export let display : display_type = {
     "button" : [["up", [50,50,50,50], "up"], ["left", [0,100,50,50], "left"],

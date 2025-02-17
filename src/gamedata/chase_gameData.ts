@@ -10,11 +10,13 @@ import GameDisplay from "../GameDisplay";
 import { anim_fn_type, button_click_type, display_type, draw_fn_type, gamedata, init_type, point, prop_commands_type, props_to_run, reset_fn_type, sound_fn_type } from "../interfaces";
 import {explode_anim, coin_anim} from "./animations";
 import game from "./game";
-import { dist, lincomb } from "../lines";
+import { dist, lincomb, moveTo } from "../lines";
+import { canvas_size, player_speed } from "./constants";
+import { displace_command } from "../rotation";
 
 export let display : display_type = {
     "button" : [],
-    "canvas" : [["main_canvas main",[0,0,600,600]]],
+    "canvas" : [["main_canvas main",[0,0,canvas_size[0],canvas_size[1]]]],
     "image" : [["images/background.png",false, 0,0]],
     "text":[] 
 }
@@ -28,17 +30,18 @@ function assert_mode(g : game){
 export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_type , events : any[] , canvas : string){
     assert_mode(g);
     let output : draw_command[] = []; 
-    let scroll = lincomb(1, g.player, -1 ,[300,300]) as point; 
+    let scroll = lincomb(1, g.player, -1 ,globalStore.player_pos) as point; 
     // x -> x - scroll  
     if(canvas === "main_canvas main"){
-        output.push({type:"drawImage", "x" :300, y : 300, "img":'images/person.png'})
+        output.push(d_image('images/person.png', g.player))
         for(let monster of g.monsters) {
-            output.push(d_image("images/monster.png", lincomb(1, monster, -1, scroll)));
+            output.push(d_image("images/monster.png", monster));
         }
         for(let tree of g.trees) {
-            output.push(d_image("images/tree.png", lincomb(1, tree, -1, scroll)));
+            output.push(d_image("images/tree.png", tree));
         }
     }
+    output = output.map(x => displace_command(x, lincomb(1, [0,0], -1, scroll) as point));
     return [output,true];
 }
 
@@ -55,6 +58,9 @@ export let sound_fn : sound_fn_type = function(g : game, globalStore : globalSto
 
 export let prop_commands : prop_commands_type = function(g : game,globalStore : globalStore_type, events : any[]){
     assert_mode(g);
+    // move player towards target
+    globalStore.player_pos = moveTo(globalStore.player_pos, globalStore.target_pos, player_speed) as point; 
+    
     // if at least 5 monsters are touching the player :
     let x = _.countBy(g.monsters.map(x => dist(x, g.player) < 10 ? "a" : "b") )["a"];
     if(x >= 5){
