@@ -133,7 +133,7 @@ function GameDisplay( props : {data  : gamedata, globalStore : globalStore_type}
             interval = -1;
             changeSound(undefined);
         }
-    },[g,r])
+    },[g,r,props])
 
     const button_click_disp = function(s : string){
         let lst  = button_click(g, globalStore, s);

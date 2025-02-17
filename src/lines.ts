@@ -309,7 +309,9 @@ export function pointInsideRectangleWH(...args : (number | number[])[]){
 	return true;
 }
 
-export function pointInsideRectangleTLBR(...args : (number | number[])[]){
+
+
+export function pointInsideRectangleBR(...args : (number | number[])[]){
     noNaN(arguments as any);
 	let lst = flatten_all(args);
 	if(lst.length != 6){
@@ -319,6 +321,37 @@ export function pointInsideRectangleTLBR(...args : (number | number[])[]){
 	return pointInsideRectangleWH(px, py, tlx, tly, brx-tlx, bry-tly);
 }
 
+export function moveIntoRectangleWH(...args : (number | number[])[]){
+    noNaN(arguments as any);
+	let lst = flatten_all(args);
+	if(lst.length != 6){
+		throw "moveIntoRectangleWH must have 6 points";
+	}
+	let [px, py, tlx, tly, w, h]  = lst; 
+	if(px < tlx){
+		px = tlx;
+	}
+	if(px > tlx + w){
+		px = tlx + w;
+	}
+	if(py < tly){
+		py = tly;
+	}
+	if(py > tly+ h){
+		py = tly + h;
+	}
+	return [px, py];
+}
+
+export function moveIntoRectangleBR(...args : (number | number[])[]){
+    noNaN(arguments as any);
+	let lst = flatten_all(args);
+	if(lst.length != 6){
+		throw "moveIntoRectangleWH must have 6 points";
+	}
+	let [px, py, tlx, tly, brx, bry]  = lst; 
+	return moveIntoRectangleWH(px, py, tlx, tly, brx-tlx, bry-tly);
+}
 
 export function max(x : number[]){
 	noNaN(arguments as any as any[][]);
