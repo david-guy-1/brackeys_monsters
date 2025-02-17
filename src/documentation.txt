@@ -1,0 +1,105 @@
+App is the first thing that gets rendered, and it should do the following in order : 
+    set the "events" object from eventManager - see the EventManager section for how to do this.
+    create a gamedata object with a game (add in its own prop-fns if necessary) and globalStore (key-value pairs that will be passed into all functions)
+    render ../GameDisplay.tsx 
+
+Declare the exact type of globalStore in gamedata/globalStore.d.ts 
+
+A gamedata object , which defines the following functions  (see interfaces.d.ts for their args and return types):
+
+game, draw_fn, anim_fn, sound_fn, init, button_click, prop_commands, prop_fns, reset_fn, display (not a function)
+
+"display" is a JSON object - see interfaces.d.ts for what it does
+
+globalStore (key-value pairs - exact type declared in gamedata/globalStore.d.ts) is passed into all functions, so we can exchange data/state between them. - not that globalStore should only be used for the view, and not the game itself, to avoid coupling. The game object does not have access to globalStore. 
+
+GameDisplay first  calls init(g, globalStore) (from gamedata) in its useEffect ( equivalent to componentDidMount). It then calls set_events(g, globalStore), which tells the event listeners to listen to events.
+
+the z-indices of GameDisplay elements are as follows:
+
+for canvases : starts at 1, then goes upwards (1, 2, 3, ...) if "background" is in its name, subtract 1000.
+
+images are at -1 
+
+otherwise, they are rendered in the order : canvas, button, image, text
+
+It then runs the following event loop:
+
+    for every game tick:
+
+        call g.tick - no args.
+
+    for every render frame : 
+
+        call the prop_commands(g, globalStore, events), which returns a list of prop functions (functions passed in as props to GameDisplay). Each element in the list is a pair, the first one specifying the name of the function, and the second one is the argument. the prop function takes in arguments: (g, globalStore, second argument). Special cases : if the first element is "rerender" , the game is re-rendered, if it's "reset", reset() is called and the game is re-rendered, if it's "change display", then the display is set to the second element in the pair (which causes a re-render).
+
+        call sound_fn(game, list of events) that outputs a pair [newsound : string, playsounds : string[]], first is the new BGM, second is a list of sound effects. - this only changes the BGM if it's different from the current one.
+
+        for each canvas, calls draw_fn(game, event list, canvas name), which returns a pair (list of draw_command, should_clear) , and draws them on canvas  - if the second element is true, then the canvas is cleared, otherwise, it's not.
+
+        calls anim_fn(g, event list), which returns a list of animations, then updates and draws them - calls each update and draw function with (g, globalStore).
+
+When a button is clicked, button_click(game, globalStore, name of button) is called, it returns the same list as prop_commands: a list of functions to call, and arguments  
+
+----
+
+EventManager handles all events except button clicks - it listens for mousemove, mousedown, mouseup, click, touchstart, touchend, keydown and keyup events.
+
+It contains a list of events (should be set in App) , which is a key-value pair of type <string, eventCall>. An eventCall is a pair [function, params]. The function is called with args (event, game, globalStore, params), and it should not output anything. 
+
+----
+
+Sound contains the functions : 
+
+playSound(s : string)
+toggleMute()
+setMuted(x : boolean)
+changeSound(s : string | undefined)
+getCurrentTrack()
+getMuted()
+
+unlike sound_fn (from gameData), when changeSound is called directly, it always plays the given track from the beginning, even if it's already being played. 
+
+
+---
+
+lines.ts contains math functions :
+
+flatten(lst : T[][])
+flatten_all(lst : (T | T[])[])
+cell_index(top_left : point, w : number, h : number, amt_per_row : number, x : number, y : number) // grid stuff, see lines.ts comment for more info
+combine_obj(obj : Record<string, any>, obj2 : Record<string, any>) // keys from obj2 are sent to obj
+add_obj(obj : Record<K, V[]>, k : K, v : V) // used when values are lists
+concat_obj(obj : Record<K, V[]>, k : K, v : V[]) // used when values are lists
+noNaN(lst : any[])
+lerp(start : number[], end : number[], t : number) // t * start + (1-t) * end
+lincomb(a : number, v : number[], b : number, w : number[]) // a*v + b*w
+num_diffs(x : T[], y : T[])// number of differences
+len(v : number[])// vector magnitude
+moveTo(v : number[], w : number[], dist_ : number) // start at v, move dist towards w. If d(v, w) <= dist , just return w. 
+dist(v : number[], w : number[]) // d(v, w) - euclidean distance
+cross(a : number[], b : number[]) // cross product
+dot(a : number[], b : number[]) // dot product
+rescale(source_start : number, source_end : number, dest_start : number, dest_end : number, value : number) // rescale intervals 
+normalize(v : number[], amt : number) // normalize vector 
+point_to_color(n : point3d) 
+number_to_hex(n : number)
+all_choices(x : T[], amt : number) // binomial coefficient
+all_combos(x : T[][]) // cartesian product
+pointInsideRectangleWH(args : (number | number[])[]) // px, py, tlx, tly, width, height
+pointInsideRectangleTLBR(args : (number | number[])[]) // x, py, tlx, tly, brx, bry
+max(x : number[])
+getIntersection(line1 : point3d, line2 : point3d)
+pointToCoefficients(args : (number | number[])[])// p1x, p1y, p2x , p2y
+between(x : number, b1 : number, b2 : number)
+doLinesIntersect(args : (number | number[])[]) // p1x, p1y, p2x, p2y, q1x, q1y, q2x, q2y = 8 numbers, representing 4 points, representing two lines 
+pointInsidePolygon(x : number, y : number, points : [number, number][])
+getLineEndWH(args : (number | number[])[]) // a line (given by 2 points) and a rectangle 
+getLineEndBR(args : (number | number[])[])
+bfs(neighbors: (vertex: T) => T[], u: T): T[] ; // bfs, where neighbors is given as an oracle function, halting condition is also given
+corners(tlx : number, tly : number, width : number, height : number, angle : number)
+
+--
+
+utilities contains a points drawing app, pojo typescript (automatically makes class with ctor), and image processing (opencv, applyMatrix applies a 3x3 or 4x4 matrix to every pixel of the image, note that it's in BGR and not RGB)
+

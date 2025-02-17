@@ -1,0 +1,159 @@
+
+// x = left/right, y = up/down, z = forwards/backwards
+// lat/long starts at right (1,0,0) and lat goes up (positive y), long goes forwards (positive z) 
+export function latlong_to_xyz(lat : number, long : number){
+	noNaN(arguments as any as any[][]);
+	let r = Math.cos(lat);
+	let y = Math.sin(lat);
+	let x = Math.cos(long)*r;
+	let z = Math.sin(long)*r;
+	return [x,y,z]; 
+}
+
+// positive z is prime meridian, eastwards (left when facing positive z, with upwards as positive y and right as positive x ) is positive longitude 
+export function xyz_to_latlong(x:number , y:number, z:number ){
+	noNaN(arguments as any as any[][]);
+	let r = Math.sqrt(x*x + y*y + z*z);
+	let lat = Math.asin(y / r);
+	let long =  Math.atan2(z, x) - Math.PI/2;
+	return [lat, long];
+
+}
+export function move3d(x :number,y :number,z :number,lat :number,long :number, dist :number) : point3d{
+	noNaN(arguments as any as any[][]);
+	let [dx,dy,dz] = latlong_to_xyz(lat, long);
+	return [x+dx*dist, y+dy*dist, z+dz*dist];
+}
+
+
+// top left, top right, bottom right, bottom left
+export function rectangle_corners(tl : point, br : point) : point[] {
+	noNaN(arguments as any as any[][]);
+	return [[tl[0], tl[1]], [br[0], tl[1]], [br[0], br[1]],  [tl[0], br[1]]]
+}
+
+
+// tl's z coord is further away (higher z coordinate)
+// returns in order : front, back, top, bottom, left, right
+export function rectangular_prism_corners(tl : point3d, br : point3d) : point3d[][]{
+	noNaN(arguments as any as any[][]);
+	return [ 
+	rectangle_corners([tl[0], tl[1]], [br[0], br[1]]).map((x) => [x[0], x[1], br[2]]),
+
+	rectangle_corners([tl[0], tl[1]], [br[0], br[1]]).map((x) => [x[0], x[1], tl[2]]),
+
+	rectangle_corners([tl[0], tl[2]], [br[0], br[2]]).map((x) => [x[0], tl[1], x[1]]),
+
+	rectangle_corners([tl[0], tl[2]], [br[0], br[2]]).map((x) => [x[0], br[1], x[1]]),
+
+	rectangle_corners([tl[1], tl[2]], [br[1], br[2]]).map((x) => [tl[0], x[0], x[1]]),
+
+	rectangle_corners([tl[1], tl[2]], [br[1], br[2]]).map((x) => [br[0], x[0], x[1]])]
+}
+export function rectangular_prism_centers(tl : point3d, br : point3d) : point3d[]{
+	noNaN(arguments as any as any[][]);
+	let x_avg = (tl[0] + br[0])/2;
+	let y_avg = (tl[1] + br[1])/2;
+	let z_avg = (tl[2] + br[2])/2;
+	return [
+		[x_avg, y_avg, br[2]],
+		[x_avg, y_avg, tl[2]],
+		[x_avg, tl[1], z_avg],
+		[x_avg, br[1], z_avg],
+		[tl[0], y_avg, z_avg],
+		[br[0], y_avg, z_avg],
+	]
+}
+
+export function rectangular_prism_edges(tl : point3d, br : point3d) : [point3d, point3d][]{
+	noNaN(arguments as any as any[][]);
+	let to_point = (x : point3d) => {return [x[0] == 0 ? tl[0] : br [0], x[1] == 0 ? tl[1] : br [1], x[2] == 0 ? tl[2] : br [2]] as point3d}
+	let out : [point3d, point3d][] = [];
+	let lst= all_combos([[0,1],[0,1],[0,1]]) as point3d[];
+	for(let i=0; i<8; i++){
+		for(let j=i+1; j<8; j++){
+			if(num_diffs(lst[i], lst[j]) == 1){
+				out.push([to_point(lst[i]) , to_point(lst[j])]);
+			}
+		}
+	}
+	return out
+}
+
+// given two points, returns the corners of a rectangular prism that is formed by thickening the line joining the two points
+export function lineseg_prism(x1:number,y1:number,z1:number,x2:number,y2:number,z2:number,width:number) : point3d[] {
+	noNaN(arguments as any as any[][]);
+    let v = [x2-x1, y2-y1, z2-z1]; 
+    let w = [-1,-1,-1];
+    if(v[0] != 0){
+        w = [0,1,1];
+    }
+    if(v[1] != 0){
+        w = [1,0,1];
+    }
+    if(v[2] != 0) {
+        w = [1,1,0];
+    }
+    if(w[0] == -1){
+        throw "line segment but points are the same";
+    }
+    //v x w is perpendicular to v, then v x (v x w) is another normal
+    let n1 = cross(v, w);
+    let n2 = cross(v, n1); 
+    if(Math.abs(dot(v, n1) + dot(v, n2) + dot(n1, n2)) > 0.001){
+        throw "something went wrong with cross products";
+    }
+    n1 = normalize(n1, width/2);
+    n2 = normalize(n2, width/2);
+    // the vertices are : ( v1 or v2), (+/-)n1, (+/-) n2, 
+    let choices = all_combos([[1, -1], [1, -1], [1, -1]]);
+    let out_vertices : point3d[] = [] ;
+	let start : point3d = [0,0,0];
+    for(let [vc, c1, c2] of choices){
+        if(vc == 1){
+            start = [x1,y1,z1];
+        } else { 
+            start = [x2, y2, z2]; 
+        }
+        out_vertices.push(lincomb(1, lincomb(1, start, c1, n1), c2, n2) as point3d); 
+    }
+
+    return out_vertices; 
+}
+export function lineseg_prism3(x : point3d, y : point3d, w : number){
+	noNaN(arguments as any as any[][]);
+	return lineseg_prism(x[0], x[1], x[2], y[0], y[1], y[2],w);
+}
+
+export function project3d(eyex : number, eyey : number, eyez : number, plane : number, px : number, py : number, pz : number ){
+	noNaN(arguments as any as any[][]);
+	if(eyez == pz){
+		throw "project3d with eye and point on the same z-value"
+	}
+	let v = [px - eyex, py - eyey, pz - eyez]; 
+	let z_dist = plane - eyez;
+	// scale v so z-coord is z_dist 
+	let scale_factor = z_dist /(pz - eyez); 
+	return [v[0] * scale_factor + eyex, v[1] * scale_factor + eyey];
+}
+
+export function inverse_project3d(eyex : number, eyey : number, eyez : number, plane : number, px : number, py : number, dist : number ){
+	noNaN(arguments as any);
+	if(eyez == plane){
+		throw "inverse project3d with eye and plane on the same z-value"
+	}
+	let v = [px - eyex, py - eyey, plane - eyez]; 
+	// scale v so z-coord is dist 
+	let scale_factor =  dist  / (plane - eyez );
+	return [v[0] * scale_factor + eyex, v[1] * scale_factor + eyey, v[2] * scale_factor + eyez];
+}
+//returns the [a, b] such that if f(x) = ax+b, then f(s0 ) = t0 and f(s1) = t1
+export function scale_translate(s0 : number, s1 : number, t0 : number, t1 : number) {
+	noNaN(arguments as any);
+	if (s0 == s1 || t0 == t1){
+		throw "scale_translate with same values "
+	}
+	let a = (t1-t0) / (s1-s0);
+	let b = t0-a * s0;
+	return [a,b];
+}
