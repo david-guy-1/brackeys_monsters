@@ -459,6 +459,11 @@ export function pointInsidePolygon(x : number, y : number , points : [number, nu
 // find where a line segment (given by two points) intersects the rectangle. the first point is inside the rectangle and the second point is outside.
 
 
+export function vector_angle(v1 : point, v2 : point){
+	v1 = normalize(v1, 1) as point; 
+	v2 = normalize(v2, 1) as point;
+	return Math.acos(dot(v1, v2)); 
+}
 
  export function getLineEndWH(...args : (number | number[])[] ){
 	noNaN(arguments as any);
