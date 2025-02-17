@@ -10,9 +10,9 @@ import GameDisplay from "../GameDisplay";
 import { anim_fn_type, button_click_type, display_type, draw_fn_type, gamedata, init_type, point, prop_commands_type, props_to_run, reset_fn_type, sound_fn_type } from "../interfaces";
 import {explode_anim, coin_anim} from "./animations";
 import game from "./game";
-import { dist, lincomb, moveTo, rescale } from "../lines";
-import { displace_command } from "../rotation";
+import { dist, lincomb, moveTo } from "../lines";
 import { canvas_size, player_speed } from "./constants";
+import { displace_command } from "../rotation";
 
 export let display : display_type = {
     "button" : [],
@@ -22,34 +22,24 @@ export let display : display_type = {
 }
 
 function assert_mode(g : game){
-    if(g.mode != "stealth"){
-        throw "mode is not stealth"; 
+    if(g.mode != "repel"){
+        throw "mode is not repel"; 
     }
 }
+// no scrolling, just repel
 
 export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_type , events : any[] , canvas : string){
     assert_mode(g);
     let output : draw_command[] = []; 
-    let scroll = lincomb(1, g.player, -1 ,globalStore.player_pos) as point; 
     // x -> x - scroll  
     if(canvas === "main_canvas main"){
-        output.push(d_image('images/person.png', g.player))
-        for(let monster of g.seeing_monsters) {
-            output.push(d_image("images/monster.png", monster.position));
-            //draw the arc 
-            let points : point[] = [monster.position]; 
-            for(let i=0; i<20; i++){
-                let angle = rescale(0, 20, monster.direction-monster.vision_arc, monster.direction+monster.vision_arc, i); 
-                points.push( lincomb(1, monster.position, monster.vision_range, [Math.cos(angle), Math.sin(angle)]) as point);
-            }
-            points.push(monster.position); 
-            output.push({type:"drawPolygon", "points_x" : points.map(x => x[0]), "points_y" : points.map(x => x[1]), color : "red", fill: true, transparency : 0.1})
-
+        output.push(d_image('images/person.png', [300,300]))
+        for(let monster of g.monsters) {
+            output.push(d_image("images/monster.png", lincomb(1, [300,300], 1,monster)));
         }
-        for(let tree of g.trees) {
-            output.push(d_image("images/tree.png", tree));
-        }
-        output = output.map(x => displace_command(x, lincomb(1, [0,0], -1, scroll) as point));
+    }
+    for(let spell of g.repel_spells){
+        output.push(displace_command(spell.draw, lincomb(1, [300,300], 1, spell.position) as point)); 
     }
     return [output,true];
 }
@@ -67,15 +57,11 @@ export let sound_fn : sound_fn_type = function(g : game, globalStore : globalSto
 
 export let prop_commands : prop_commands_type = function(g : game,globalStore : globalStore_type, events : any[]){
     assert_mode(g);
-    // move player
-    globalStore.player_pos = moveTo(globalStore.player_pos, globalStore.target_pos, player_speed) as point;
-
-    let output : props_to_run = []; 
-
-    // if at least 5 monsters are touching the player :
-    if(g.seen_time > 60) { 
+    // move player towards target
+    if(g.repel_spells.length >= 10){
         return [["new_game", null]];
     }
+    let output : props_to_run = []; 
     return output; 
 }
 

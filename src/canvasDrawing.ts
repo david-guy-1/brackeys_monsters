@@ -301,7 +301,38 @@ export function d_text(text : string , ...args : ( number | number[])[] ) : draw
 	return {"type":"drawText", "x" : x[0], "y" : x[1], "text_" : text};
 } 
 
+export function d_bezier(points  : point[] | number[], shape : boolean = false) : draw_command[]{
+	if(typeof(points[0]) == "number"){
+		if(points.length %2 != 0){
+			throw "d_bezier with odd number of numbers";
+		}
+		let p : point[] = [];
+		for(let i=0; i<points.length; i+=2){
+			p.push([points[i] as number, points[i+1] as number]);
+		}
+		return d_bezier(p)
+	}
 
+	points = points as point[]; 
+	if(points.length % 3 != 1 ){
+		throw "d_bezier must have length 1 mod 3";
+	}
+	let output : draw_command[] = [];
+	let current_point = points[0];
+	if(shape == false ){
+		for(let i=1; i < points.length; i+=3){
+			output.push({"type":"drawBezierCurve", "x" : current_point[0], "y":current_point[1], "p1x" : points[i][0] , "p1y":points[i][1], "p2x" : points[i+1][0], "p2y" : points[i+1][1], "p3x" : points[i+2][0], "p3y" : points[i+2][1]});
+			current_point = points[i+2]; 
+		}
+	} else {
+		let curves : bezier[] = []; 
+		for(let i=1; i < points.length; i+=3){
+			curves.push([points[i][0], points[i][1], points[i+1][0],points[i+1][1], points[i+2][0], points[i+2][1]]); 
+		}
+		output.push({"type":"drawBezierShape", x : points[0][0], y : points[0][1], curves : curves}); 
+	}
+	return output; 
+}
 export function add_com(x : draw_command, y : Record<string, any>) : draw_command{
 	combine_obj(x,y); // calls lines.ts 
 	return x; 

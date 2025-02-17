@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import game from './game';
+import game, { repel_spell } from './game';
 
 import { data_obj as chase_obj  } from './chase_gameData';
 import { data_obj as move_obj } from './move_gameData';
 import { data_obj as stealth_obj } from './stealth_gameData';
+import { data_obj as repel_obj } from './repel_gameData';
 import { events } from '../EventManager';
 import GameDisplay, { clone_gamedata } from '../GameDisplay';
-import { lincomb, moveIntoRectangleBR } from '../lines';
+import { lincomb, moveIntoRectangleBR, normalize } from '../lines';
 import { canvas_size, player_box } from './constants';
+import  Test_canvas  from '../test_canvas';
 function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
   if(g.mode == "chase" || g.mode == "stealth"){
     if((e.target as HTMLElement).getAttribute("data-key")?.indexOf("main_canvas") != -1){ // topmost canvas element that is valid
@@ -21,6 +23,10 @@ function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
 
 }
 
+function cast_repel_spell(e : MouseEvent, g : game, store : globalStore_type){
+  let v = normalize(lincomb(1, [e.offsetX, e.offsetY], -1, [300, 300]), 10) as point;
+  g.repel_spells.push(new repel_spell([0,0], v, 75));
+}
 
 function App() {
   const [g, setG] = useState<game | undefined>(undefined);
@@ -34,7 +40,7 @@ function App() {
     return <></>
   }
   if(mode == "menu"){
-      return <button onClick={() => {setG(new game()); setMode("stealth");} }>Click to start</button>;
+      return <button onClick={() => {setG(new game()); setMode("repel");} }>Click to start</button>;
   }else if (mode == "chase"){
       // set up game 
         g?.setup_chase(2000, 2000)
@@ -63,6 +69,18 @@ function App() {
     events["mousemove a"] = [move_canvas, g]
     let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, target_pos: lincomb(1, [0,0], 0.5, canvas_size) as point }
     return <GameDisplay data={data} globalStore={store} />  
+  } else if (mode == "repel"){
+    g?.setup_repel();
+    let data = clone_gamedata(repel_obj); 
+    data.g = g;
+    data.prop_fns["new_game"] =  () => transition("menu");
+    // register event listener;
+    events["click a"] = [cast_repel_spell, g]
+    let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, target_pos: lincomb(1, [0,0], 0.5, canvas_size) as point }
+    return <GameDisplay data={data} globalStore={store} />  
+    
+  }else if (mode == "test"){
+    return <Test_canvas />;
   }
 }
 
