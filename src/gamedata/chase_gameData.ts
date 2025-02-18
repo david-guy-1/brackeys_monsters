@@ -10,9 +10,10 @@ import GameDisplay from "../GameDisplay";
 import { anim_fn_type, button_click_type, display_type, draw_fn_type, gamedata, init_type, point, prop_commands_type, props_to_run, reset_fn_type, sound_fn_type } from "../interfaces";
 import {explode_anim, coin_anim} from "./animations";
 import game from "./game";
-import { dist, lincomb, moveTo } from "../lines";
+import { dist, lincomb, move_lst, moveTo } from "../lines";
 import { canvas_size, player_speed } from "./constants";
 import { displace_command } from "../rotation";
+import { draw_monsters, draw_repel_spells, draw_trees, move_player_to_point } from "./utilities";
 
 export let display : display_type = {
     "button" : [],
@@ -34,12 +35,7 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
     // x -> x - scroll  
     if(canvas === "main_canvas main"){
         output.push(d_image('images/person.png', g.player))
-        for(let monster of g.monsters) {
-            output.push(d_image("images/monster.png", monster));
-        }
-        for(let tree of g.trees) {
-            output.push(d_image("images/tree.png", tree));
-        }
+        output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g));
     }
     output = output.map(x => displace_command(x, lincomb(1, [0,0], -1, scroll) as point));
     return [output,true];
@@ -59,7 +55,7 @@ export let sound_fn : sound_fn_type = function(g : game, globalStore : globalSto
 export let prop_commands : prop_commands_type = function(g : game,globalStore : globalStore_type, events : any[]){
     assert_mode(g);
     // move player towards target
-    globalStore.player_pos = moveTo(globalStore.player_pos, globalStore.target_pos, player_speed) as point; 
+    move_player_to_point(globalStore);
     
     // if at least 5 monsters are touching the player :
     let x = _.countBy(g.monsters.map(x => dist(x, g.player) < 10 ? "a" : "b") )["a"];

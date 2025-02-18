@@ -158,6 +158,7 @@ type drawBezierCurve_command = {
    "width" ?: number,
 }
 
+//start at x,y , each bezier is 
 type drawBezierShape_command = {
    "type" : "drawBezierShape",
    "x" : number,

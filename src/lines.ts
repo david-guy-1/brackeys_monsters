@@ -45,6 +45,15 @@ export function combine_obj(obj : Record<string,any>,obj2 : Record<string,any>){
 		obj[item] = obj2[item];
 	}
 }
+// mutates
+export function move_lst<T>(a : T[] , b : T[]) : T[]{
+	for(let i=0; i < a.length; i++){
+		if(b[i] != undefined){
+			a[i] = b[i]
+		}
+	}
+	return a;
+}
 
 // these two are used when the values in the hash table are lists
 export function add_obj<K extends string | number | symbol, V>(obj : Record<K,V[]>, k : K, v : V){

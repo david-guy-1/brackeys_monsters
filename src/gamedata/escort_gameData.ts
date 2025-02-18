@@ -5,7 +5,7 @@ game, draw_fn, anim_fn, sound_fn, add_event_listeners, button_click, prop_comman
 
 import _ from "lodash";
 import { animation } from "../animations";
-import { d_image } from "../canvasDrawing";
+import { add_com, d_image, d_line } from "../canvasDrawing";
 import GameDisplay from "../GameDisplay";
 import { anim_fn_type, button_click_type, display_type, draw_fn_type, gamedata, init_type, point, prop_commands_type, props_to_run, reset_fn_type, sound_fn_type } from "../interfaces";
 import {explode_anim, coin_anim} from "./animations";
@@ -23,8 +23,8 @@ export let display : display_type = {
 }
 
 function assert_mode(g : game){
-    if(g.mode != "stealth"){
-        throw "mode is not stealth"; 
+    if(g.mode != "escort"){
+        throw "mode is not escort"; 
     }
 }
 
@@ -36,6 +36,10 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
     if(canvas === "main_canvas main"){
         output.push(d_image('images/person.png', g.player))
         output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g));
+        output.push(d_image("images/escorted.png", g.escort_pos));
+        for(let i=0; i < g.escort_points.length-1; i++){
+            output.push(add_com(d_line(g.escort_points[i], g.escort_points[i+1]), {"width":4, "color":"red"}));
+        }
         output = output.map(x => displace_command(x, lincomb(1, [0,0], -1, scroll) as point));
     }
     return [output,true];
@@ -61,7 +65,7 @@ export let prop_commands : prop_commands_type = function(g : game,globalStore : 
     let output : props_to_run = []; 
 
     // if at least 5 monsters are touching the player :
-    if(g.seen_time > 60) { 
+    if(dist(g.escort_pos, g.escort_points[g.escort_points.length-1] ) < 10) { 
         return [["new_game", null]];
     }
     return output; 
