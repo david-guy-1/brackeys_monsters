@@ -37,7 +37,7 @@ function cast_repel_spell(e : MouseEvent, g : game, store : globalStore_type){
   if(v[0] == 0 && v[1] == 0){
     v = [0,1];
   }
-  g.cast_repel_spell(v[0], v[1], 84);
+  g.cast_repel_spell(v[0], v[1], 60,84);
 }
 
 function App() {
@@ -99,6 +99,7 @@ function App() {
       data.g = g;
       data.prop_fns["new_game"] =  () => transition("chase");
       // register event listener;
+      events["click a"] = [cast_repel_spell, null]
       events["mousemove a"] = [move_canvas, null]
       let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, target_pos: lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] }
       return <GameDisplay data={data} globalStore={store} />  

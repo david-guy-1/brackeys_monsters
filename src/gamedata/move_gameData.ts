@@ -69,16 +69,16 @@ export let button_click : button_click_type = function(g : game,globalStore : gl
     assert_mode(g);
     switch(name){
         case "up":
-            g.move_player([0, -1]);
+            g.move_player_disc([0, -1]);
             break;
         case "down":
-            g.move_player([0, 1]);
+            g.move_player_disc([0, 1]);
             break;
         case "left":
-            g.move_player([-1,0]);
+            g.move_player_disc([-1,0]);
             break;
         case "right":
-            g.move_player([1,0]);
+            g.move_player_disc([1,0]);
             break;
         
     }

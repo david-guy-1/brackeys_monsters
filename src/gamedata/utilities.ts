@@ -53,3 +53,18 @@ export function draw_trees(g : game){
     }
     return output; 
 }
+export function draw_coins(g : game){
+    let output : draw_command[] = [];
+    for(let [i, coin] of g.coin_points.entries()) {
+        if(!g.collected[i]){
+            output.push(d_image("images/coin.png", coin));
+        }
+    }
+    return output;
+}
+
+export function draw_all(g : game){
+    let output : draw_command[] = [];
+    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_coins(g));
+    return output;
+}

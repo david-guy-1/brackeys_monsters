@@ -13,7 +13,7 @@ import game from "./game";
 import { dist, lincomb, move_lst, moveTo } from "../lines";
 import { canvas_size, player_speed } from "./constants";
 import { displace_command } from "../rotation";
-import { draw_monsters, draw_repel_spells, draw_trees, move_player_to_point } from "./utilities";
+import { draw_all, draw_monsters, draw_repel_spells, draw_trees, move_player_to_point } from "./utilities";
 
 export let display : display_type = {
     "button" : [],
@@ -35,7 +35,7 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
     // x -> x - scroll  
     if(canvas === "main_canvas main"){
         output.push(d_image('images/person.png', g.player))
-        output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g));
+        output = output.concat(draw_all(g));
     }
     output = output.map(x => displace_command(x, lincomb(1, [0,0], -1, scroll) as point));
     return [output,true];

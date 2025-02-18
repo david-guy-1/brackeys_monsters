@@ -40,12 +40,6 @@ export function cell_index(top_left : point, w : number, h : number, amt_per_row
 }
 
 // mutates
-export function combine_obj(obj : Record<string,any>,obj2 : Record<string,any>){
-	for(let item of Object.keys(obj2)){
-		obj[item] = obj2[item];
-	}
-}
-// mutates
 export function move_lst<T>(a : T[] , b : T[]) : T[]{
 	for(let i=0; i < a.length; i++){
 		if(b[i] != undefined){
@@ -53,6 +47,14 @@ export function move_lst<T>(a : T[] , b : T[]) : T[]{
 		}
 	}
 	return a;
+}
+
+
+// mutates
+export function combine_obj(obj : Record<string,any>,obj2 : Record<string,any>){
+	for(let item of Object.keys(obj2)){
+		obj[item] = obj2[item];
+	}
 }
 
 // these two are used when the values in the hash table are lists
@@ -318,16 +320,20 @@ export function pointInsideRectangleWH(...args : (number | number[])[]){
 	return true;
 }
 
-
-
 export function pointInsideRectangleBR(...args : (number | number[])[]){
     noNaN(arguments as any);
 	let lst = flatten_all(args);
 	if(lst.length != 6){
-		throw "pointInsideRectangleTLBR must have 6 points";
+		throw "pointInsideRectangleBR must have 6 points";
 	}
 	let [px, py, tlx, tly, brx, bry]  = lst; 
 	return pointInsideRectangleWH(px, py, tlx, tly, brx-tlx, bry-tly);
+}
+
+export function vector_angle(v1 : point, v2 : point){
+	v1 = normalize(v1, 1) as point; 
+	v2 = normalize(v2, 1) as point;
+	return Math.acos(dot(v1, v2)); 
 }
 
 export function moveIntoRectangleWH(...args : (number | number[])[]){
@@ -361,6 +367,8 @@ export function moveIntoRectangleBR(...args : (number | number[])[]){
 	let [px, py, tlx, tly, brx, bry]  = lst; 
 	return moveIntoRectangleWH(px, py, tlx, tly, brx-tlx, bry-tly);
 }
+
+
 
 export function max(x : number[]){
 	noNaN(arguments as any as any[][]);
@@ -468,11 +476,6 @@ export function pointInsidePolygon(x : number, y : number , points : [number, nu
 // find where a line segment (given by two points) intersects the rectangle. the first point is inside the rectangle and the second point is outside.
 
 
-export function vector_angle(v1 : point, v2 : point){
-	v1 = normalize(v1, 1) as point; 
-	v2 = normalize(v2, 1) as point;
-	return Math.acos(dot(v1, v2)); 
-}
 
  export function getLineEndWH(...args : (number | number[])[] ){
 	noNaN(arguments as any);
