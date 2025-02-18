@@ -10,10 +10,10 @@ import GameDisplay from "../GameDisplay";
 import { anim_fn_type, button_click_type, display_type, draw_fn_type, gamedata, init_type, point, prop_commands_type, props_to_run, reset_fn_type, sound_fn_type } from "../interfaces";
 import {explode_anim, coin_anim} from "./animations";
 import game from "./game";
-import { dist, lincomb, moveTo } from "../lines";
+import { dist, lincomb, move_lst, moveTo } from "../lines";
 import { canvas_size, player_speed } from "./constants";
 import { displace_command } from "../rotation";
-import { draw_trees, draw_monsters, draw_repel_spells, draw_all } from "./utilities";
+import { draw_all, draw_monsters, draw_repel_spells, draw_trees, move_player_to_point } from "./utilities";
 
 export let display : display_type = {
     "button" : [],
@@ -23,24 +23,21 @@ export let display : display_type = {
 }
 
 function assert_mode(g : game){
-    if(g.mode != "repel"){
-        throw "mode is not repel"; 
+    if(g.mode != "collect"){
+        throw "mode is not collect"; 
     }
 }
-// no scrolling, just repel
 
 export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_type , events : any[] , canvas : string){
     assert_mode(g);
     let output : draw_command[] = []; 
+    let scroll = lincomb(1, g.player, -1 ,globalStore.player_pos) as point; 
     // x -> x - scroll  
     if(canvas === "main_canvas main"){
-        output.push(d_image('images/person.png', [0,0]))
+        output.push(d_image('images/person.png', g.player))
         output = output.concat(draw_all(g));
     }
-    for(let spell of g.repel_spells){
-        output.push(displace_command(spell.draw, spell.position as point)); 
-    }
-    output= output.map(x =>displace_command(x, globalStore.player_pos));
+    output = output.map(x => displace_command(x, lincomb(1, [0,0], -1, scroll) as point));
     return [output,true];
 }
 
@@ -57,7 +54,10 @@ export let sound_fn : sound_fn_type = function(g : game, globalStore : globalSto
 
 export let prop_commands : prop_commands_type = function(g : game,globalStore : globalStore_type, events : any[]){
     assert_mode(g);
-    if(g.repel_spells.length >= 5){
+    // move player towards target
+    move_player_to_point(globalStore);
+    
+    if(_.every(g.collected)){
         return [["new_game", null]];
     }
     let output : props_to_run = []; 

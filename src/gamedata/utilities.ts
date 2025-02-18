@@ -36,6 +36,9 @@ export function draw_monsters(g : game){
     for(let monster of g.roaming_monsters){
         output.push(d_image("images/roaming_monster.png", monster.position))
     }
+    for(let monster of g.targeted_monsters){
+        output.push(d_image("images/targeted_monster.png", monster.position))
+    }
     return output;
 }
 export function draw_repel_spells(g : game){

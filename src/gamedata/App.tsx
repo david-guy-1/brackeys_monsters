@@ -6,6 +6,7 @@ import { data_obj as move_obj } from './move_gameData';
 import { data_obj as stealth_obj } from './stealth_gameData';
 import { data_obj as repel_obj } from './repel_gameData';
 import { data_obj as escort_obj } from './escort_gameData';
+import { data_obj as collect_obj } from './collect_gameData';
 import { events } from '../EventManager';
 import GameDisplay, { clone_gamedata } from '../GameDisplay';
 import { dist, lincomb, moveIntoRectangleBR, normalize } from '../lines';
@@ -13,13 +14,12 @@ import { canvas_size, mouse_radius, player_box } from './constants';
 import  Test_canvas  from '../test_canvas';
 
 function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
-  if(g.mode == "chase" || g.mode == "stealth" || g.mode == "escort"){
+  if(g.mode == "chase" || g.mode == "stealth" || g.mode == "escort" || g.mode == "collect"){
     if((e.target as HTMLElement).getAttribute("data-key")?.indexOf("main_canvas") != -1){ // topmost canvas element that is valid
       if(dist([e.offsetX, e.offsetY], store.player_pos) > mouse_radius ){
         let scroll = lincomb(1, g.player, -1, store.player_pos) as point;  //game-coords of top left corner 
           // x -> x - scroll  
         g.target= lincomb(1, [e.offsetX, e.offsetY], 1, scroll) as point;  
-        console.log(g.target);
         store.target_pos = moveIntoRectangleBR(  [e.offsetX, e.offsetY] ,player_box ) as point ;
       }
         
@@ -52,7 +52,7 @@ function App() {
     return <></>
   }
   if(mode == "menu"){
-      return <button onClick={() => {setG(new game()); setMode("escort");} }>Click to start</button>;
+      return <button onClick={() => {setG(new game()); setMode("collect");} }>Click to start</button>;
   }else if (mode == "chase"){
       // set up game 
         g?.setup_chase(2000, 2000)
@@ -76,7 +76,7 @@ function App() {
     g?.setup_stealth(2000, 2000);
     let data = clone_gamedata(stealth_obj); 
     data.g = g;
-    data.prop_fns["new_game"] =  () => transition("chase");
+    data.prop_fns["new_game"] =  () => transition("repel");
     // register event listener;
     events["mousemove a"] = [move_canvas, null]
     events["click a"] = [cast_repel_spell, null]
@@ -86,7 +86,7 @@ function App() {
     g?.setup_repel(600,600);
     let data = clone_gamedata(repel_obj); 
     data.g = g;
-    data.prop_fns["new_game"] =  () => transition("menu");
+    data.prop_fns["new_game"] =  () => transition("escort");
     // register event listener;
     events["click a"] = [cast_repel_spell, null]
     let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, target_pos: lincomb(1, [0,0], 0.5, canvas_size) as point ,player_last_pos : [0,0]}
@@ -96,6 +96,18 @@ function App() {
     // set up game 
       g?.setup_escort(2000, 2000, [[200,200], [800, 200], [1300, 10],[1900, 1100],[1950, 1800], [600, 1800], [400, 100]], 10);
       let data = clone_gamedata(escort_obj); 
+      data.g = g;
+      data.prop_fns["new_game"] =  () => transition("collect");
+      // register event listener;
+      events["click a"] = [cast_repel_spell, null]
+      events["mousemove a"] = [move_canvas, null]
+      let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, target_pos: lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] }
+      return <GameDisplay data={data} globalStore={store} />  
+  }
+  else if (mode == "collect"){
+    // set up game 
+      g?.setup_collect(2000, 2000);
+      let data = clone_gamedata(collect_obj); 
       data.g = g;
       data.prop_fns["new_game"] =  () => transition("chase");
       // register event listener;

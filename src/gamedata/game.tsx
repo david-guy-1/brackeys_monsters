@@ -9,11 +9,13 @@ class seeing_monster {
     vision_range:number;
     vision_arc:number;
     vision_velocity : number = 0; 
-    constructor(position : point,direction : number,vision_range : number,vision_arc : number){
+    name : string = ""
+    constructor(position : point,direction : number,vision_range : number,vision_arc : number, name : string = ""){
         this.position=position;
         this.direction=direction;
         this.vision_range=vision_range;
         this.vision_arc=vision_arc;
+        this.name = name
 
     }
 }
@@ -23,13 +25,14 @@ class roaming_monster {
     w:number;
     h:number;
     speed:number;
-
-    constructor(position : point,target : point,w : number,h : number,speed : number){
+    name : string = ""
+    constructor(position : point,target : point,w : number,h : number,speed : number, name : string = ""){
         this.position=position;
         this.target=target;
         this.w=w;
         this.h=h;
         this.speed=speed;
+        this.name = name
 
     }
     tick(){
@@ -37,6 +40,21 @@ class roaming_monster {
         if(dist(this.position, this.target) < 1){
             this.target = [Math.random() * this.w , Math.random() * this.h]; 
         }
+    }
+}
+class targeted_monster {
+    position:point;
+    target:point;
+    speed:number;
+    name : string = ""
+    constructor(position : point,target : point,speed : number, name : string = ""){
+        this.position=position;
+        this.target=target;
+        this.speed=speed;
+        this.name = name
+    }
+    tick(){
+        this.position = moveTo(this.position, this.target, this.speed) as point;
     }
 }
 
@@ -61,15 +79,9 @@ export class repel_spell {
 }
 
 
-export function repel_monster(x : point | seeing_monster, y : repel_spell) {
+export function repel_monster(x : point, y : repel_spell) {
     // move monster in direction of repel spell
-    let position : point = [0,0];
-    if(x instanceof seeing_monster){
-        position = x.position
-    } else {
-        position = x;
-    }
-    position = lincomb(1, position, 0.9, y.velocity) as point;
+    let position = lincomb(1, x, 0.9, y.velocity) as point;
     return position; 
 }
 
@@ -77,7 +89,7 @@ export function repel_monster(x : point | seeing_monster, y : repel_spell) {
 class game implements game_interface{
     //fundamentals 
     dims : point = [0,0]; // width, height
-    mode : "chase" | "move" | "stealth" | "repel" | "escort" = "chase"; 
+    mode : "chase" | "move" | "stealth" | "repel" | "escort" | "collect" = "chase"; 
     time : number = 0;
 
     // player movement
@@ -88,7 +100,7 @@ class game implements game_interface{
     monsters : point[] = [];
     seeing_monsters : seeing_monster[] = []; 
     roaming_monsters : roaming_monster[] = []; 
-    
+    targeted_monsters : targeted_monster[] = [];
     // common stuff
     trees : point[] = []; 
     seen_time : number = 0;
@@ -106,10 +118,13 @@ class game implements game_interface{
 
     constructor(){} ; // no constructor 
     clear(){
+        this.monsters = []; 
+        this.seeing_monsters = [];
+        this.roaming_monsters = [];
+        this.targeted_monsters = []; 
         this.trees = [];
-        this.seen_time = 0;
-        this.seeing_monsters = []
         this.repel_spells = [];
+        this.seen_time = 0;
         this.time = 0; 
         this.escort_points = [];
         this.coin_points = [];
@@ -188,7 +203,21 @@ class game implements game_interface{
             this.collected.push(false)
         }
     }
-
+    setup_collect(w : number,h : number, ){
+        this.clear()
+        this.mode = "collect";
+        this.dims = [w,h];
+        //coins
+        for(let i=0; i<30; i++){
+            this.coin_points.push([Math.random() * w, Math.random() * h]);
+            this.collected.push(false)
+        }
+        //monsters
+        for(let i=0; i<100; i++){
+            let spawn = [Math.random() * w, Math.random() * h];
+            this.targeted_monsters.push(new targeted_monster([...spawn] as point, [...spawn] as point, 3 + 4 * Math.random())); 
+        }
+    }
     // discrete move;
 
     move_player_disc(input : point){
@@ -201,10 +230,11 @@ class game implements game_interface{
     tick(){
         this.time++;
         // default actions, for any "moving" stuff
-        if("chase stealth repel escort".split(" ").indexOf(this.mode) != -1){
+        if("chase stealth repel escort collect".split(" ").indexOf(this.mode) != -1){
             this.player = moveTo(this.player, this.target,15) as point; 
             this.player = moveIntoRectangleWH(this.player, [0,0], this.dims) as point;   
             this.roaming_monsters.forEach(x => x.tick());
+            this.targeted_monsters.forEach(x => x.tick());
             this.handle_repel();
             this.handle_collect();
         }
@@ -219,6 +249,9 @@ class game implements game_interface{
         }
         else if (this.mode == "escort"){
             return this.tick_escort(); 
+        }
+        else if (this.mode == "collect"){
+            return this.tick_collect(); 
         }
         return []; 
     }
@@ -272,9 +305,7 @@ class game implements game_interface{
         return []
     }
     tick_escort(){
-        
         // move the escorted person 
-        
         let next_point = this.escort_points[this.escort_next_point];
         this.escort_pos = moveTo(this.escort_pos, next_point, this.escort_speed) as point;
         if(dist(this.escort_pos, next_point) < 1){
@@ -284,6 +315,35 @@ class game implements game_interface{
         }
         return [];
     }
+    tick_collect(){
+        // move the escorted person 
+        let get_nearest_coin = function(this:game, p : point){
+            let min_dist = Number.POSITIVE_INFINITY; 
+            let closest = -1; 
+            for(let [i, coin ] of this.coin_points.entries()){
+                if(this.collected[i]){
+                    continue;
+                }
+                let d = dist(p, coin);
+                if(d < min_dist){
+                    closest = i;
+                    min_dist = d; 
+                }
+            }
+            return closest;
+        }.bind(this);
+
+        for(let monster of this.targeted_monsters){
+            if(dist(monster.position, monster.target) < 4){
+                let coin = get_nearest_coin(monster.position)
+                if(coin != -1){
+                    monster.target = lincomb(1, this.coin_points[coin], 280, [Math.random() -0.5,Math.random() -0.5]) as point;
+                }
+            }
+        }
+        return [];
+    }
+
     cast_repel_spell (x : number, y : number,  lifespan : number, width : number = 100, velocity : number = 10){
         let v = normalize ([x,y], velocity) as point; 
         this.repel_spells.push(new repel_spell(this.player, v, width, lifespan));
@@ -291,7 +351,7 @@ class game implements game_interface{
     seeing_monster_see_player(firstone : boolean = false) : number[]{ // indices of monsters that see the player
         let seen = [];
         for(let [i, monster] of this.seeing_monsters.entries()){
-            if(dist(this.player, monster.position) < monster.vision_range && vector_angle(lincomb(1, this.player, -1, monster.position) as point, [Math.cos(monster.direction), Math.sin(monster.direction)]) <= monster.vision_arc){
+            if(dist(this.player, monster.position) < monster.vision_range && (dist(this.player, monster.position) == 0 || vector_angle(lincomb(1, this.player, -1, monster.position) as point, [Math.cos(monster.direction), Math.sin(monster.direction)]) <= monster.vision_arc)){
                 seen.push(i);
                 if(firstone){
                     return seen; 
@@ -312,11 +372,11 @@ class game implements game_interface{
             }
             for(let item2 of this.seeing_monsters){
                 if(dist(item.position, item2.position) < item.width){
-                    move_lst(item2.position,  repel_monster(item2, item));
+                    move_lst(item2.position,  repel_monster(item2.position, item));
                     item2.direction = Math.atan2(item.velocity[1], item.velocity[0]);
                 }
             }
-            for(let item2 of this.roaming_monsters){
+            for(let item2 of (this.roaming_monsters as {position : point}[]).concat(this.targeted_monsters) ){
                 if(dist(item.position, item2.position) < item.width){
                     move_lst(item2.position,  repel_monster(item2.position, item));
                 }
