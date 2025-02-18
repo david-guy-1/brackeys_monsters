@@ -431,7 +431,7 @@ export function getIntersection(line1:point3d , line2:point3d) : point{
 	noNaN(arguments as any);
 	let lst = flatten_all(args);
 	if(lst.length !=8){
-		throw "doLinesIntersect must have 6 points";
+		throw "doLinesIntersect must have 8 points";
 	}
 	let [p1x, p1y, p2x, p2y, q1x, q1y, q2x, q2y] = lst; 
     

@@ -55,7 +55,7 @@ export let sound_fn : sound_fn_type = function(g : game, globalStore : globalSto
 export let prop_commands : prop_commands_type = function(g : game,globalStore : globalStore_type, events : any[]){
     assert_mode(g);
     // move player
-    move_player_to_point(globalStore);
+    move_player_to_point(g, globalStore);
 
 
     let output : props_to_run = []; 

@@ -55,7 +55,7 @@ export let sound_fn : sound_fn_type = function(g : game, globalStore : globalSto
 export let prop_commands : prop_commands_type = function(g : game,globalStore : globalStore_type, events : any[]){
     assert_mode(g);
     // move player towards target
-    move_player_to_point(globalStore);
+    move_player_to_point(g, globalStore);
     
     // if at least 5 monsters are touching the player :
     let x = _.countBy(g.monsters.map(x => dist(x.position, g.player) < 10 ? "a" : "b") )["a"];

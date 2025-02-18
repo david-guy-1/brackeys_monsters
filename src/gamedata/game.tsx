@@ -1,16 +1,21 @@
-import _ from "lodash";
+import _, { flatten } from "lodash";
 import { game_interface, point } from "../interfaces";
-import { dist, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointInsidePolygon, vector_angle } from "../lines";
+import { dist, doLinesIntersect, getIntersection, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointInsidePolygon, pointToCoefficients, vector_angle } from "../lines";
 import { rotate_command, scale_command } from "../rotation";
 
 class monster { 
     position : point;
     name : string
+    age : number = 0;
     constructor(position : point, name : string = ""){
         this.position = position; 
         this.name = name;
     }
+    tick(g : game){
+        this.age++;
+    }
 }
+
 class seeing_monster extends monster{
     direction:number;
     vision_range:number;
@@ -24,9 +29,10 @@ class seeing_monster extends monster{
         this.vision_arc=vision_arc;
         this.name = name
     }
-    tick(){
+    tick(g : game){
+        this.age++
         // move this 
-        this.position = lincomb(1, this.position, 1, [Math.cos(this.direction), Math.sin(this.direction)]) as point;
+        g.move_wall(this.position, lincomb(1, this.position, 1, [Math.cos(this.direction), Math.sin(this.direction)]) as point)
         //turn this
         this.vision_velocity += (Math.random() - 0.5) * 0.1;
         if(Math.abs(this.vision_velocity) > 0.04){
@@ -51,8 +57,9 @@ class roaming_monster extends monster {
         this.name = name
 
     }
-    tick(){
-        this.position = moveTo(this.position, this.target, this.speed) as point;
+    tick(g : game){
+        this.age++
+        g.move_wall(this.position, this.target, this.speed);
         if(dist(this.position, this.target) < 1){
             this.target = [Math.random() * this.w , Math.random() * this.h]; 
         }
@@ -69,8 +76,9 @@ class targeted_monster extends monster{
         this.speed=speed;
         this.name = name
     }
-    tick(){
-        this.position = moveTo(this.position, this.target, this.speed) as point;
+    tick(g : game){
+        this.age++
+        g.move_wall(this.position, this.target, this.speed);
     }
 }
 
@@ -117,11 +125,12 @@ class game implements game_interface{
     seeing_monsters : seeing_monster[] = []; 
     roaming_monsters : roaming_monster[] = []; 
     targeted_monsters : targeted_monster[] = [];
+
     // common stuff
     trees : point[] = []; 
     seen_time : number = 0;
     repel_spells : repel_spell[] = []; 
-    
+    walls : [point, point][]  = []; 
     // escort stuff
     escort_points : point[] = [];
     escort_next_point : number = 0;
@@ -141,6 +150,7 @@ class game implements game_interface{
         this.trees = [];
         this.repel_spells = [];
         this.seen_time = 0;
+        this.walls = [];
         this.time = 0; 
         this.escort_points = [];
         this.coin_points = [];
@@ -223,6 +233,7 @@ class game implements game_interface{
         this.clear()
         this.mode = "collect";
         this.dims = [w,h];
+        this.walls.push([[100,100],[700,400]]);
         //coins
         for(let i=0; i<30; i++){
             this.coin_points.push([Math.random() * w, Math.random() * h]);
@@ -247,11 +258,11 @@ class game implements game_interface{
         this.time++;
         // default actions, for any "moving" stuff
         if("chase stealth repel escort collect".split(" ").indexOf(this.mode) != -1){
-            this.player = moveTo(this.player, this.target,15) as point; 
+            this.move_wall(this.player, this.target,15) ; 
             this.player = moveIntoRectangleWH(this.player, [0,0], this.dims) as point;   
-            this.seeing_monsters.forEach(x => x.tick());
-            this.roaming_monsters.forEach(x => x.tick());
-            this.targeted_monsters.forEach(x => x.tick());
+            this.seeing_monsters.forEach(x => x.tick(this));
+            this.roaming_monsters.forEach(x => x.tick(this));
+            this.targeted_monsters.forEach(x => x.tick(this));
             this.handle_repel();
             this.handle_collect();
         }
@@ -280,9 +291,9 @@ class game implements game_interface{
             let monster = this.monsters[i];
             if(dist(monster.position, this.player) < 600){
                 // pursue the player
-                this.monsters[i].position = moveTo(monster.position, this.player, 4) as point; 
+                this.move_wall(monster.position, this.player, 4); 
             } else {
-                this.monsters[i].position = lincomb(1, monster.position, 7, [Math.random() - 0.5,Math.random() - 0.5]) as point;  
+                this.move_wall(monster.position, lincomb(1, monster.position, 7, [Math.random() - 0.5,Math.random() - 0.5]) as point);  
             }
             this.monsters[i].position = moveIntoRectangleWH(this.monsters[i].position, [0,0], this.dims) as point; 
         } 
@@ -303,8 +314,8 @@ class game implements game_interface{
         // move monster
         let i = 0; 
         for(let item of this.monsters){
-            let target = lincomb(1, [0,0], 60 + 2*i, [Math.cos(this.time/100 + i ), Math.sin(this.time/100 + i)])            
-            item.position = moveTo(item.position, target, 5) as point;;
+            let target = lincomb(1, [0,0], 60 + 2*i, [Math.cos(this.time/100 + i ), Math.sin(this.time/100 + i)]) as point;            
+            this.move_wall(item.position, target, 5);
             item.position =  moveIntoRectangleWH(item.position, -this.dims[0]/2,-this.dims[1]/2,this.dims[0],this.dims[1]) as point;
             i++;
         }
@@ -371,20 +382,12 @@ class game implements game_interface{
         for(let item of this.repel_spells){
             item.position = lincomb(1, item.position, 1, item.velocity) as point; 
             item.tick();
-            for(let item2 of this.monsters){
+            for(let item2 of this.monsters.concat(this.seeing_monsters).concat(this.roaming_monsters).concat(this.targeted_monsters)){
                 if(dist(item.position, item2.position) < item.width){
-                    item2.position= repel_monster(item2.position, item);
+                    this.move_wall(item2.position, repel_monster(item2.position, item));
                 }
-            }
-            for(let item2 of this.seeing_monsters){
-                if(dist(item.position, item2.position) < item.width){
-                    move_lst(item2.position,  repel_monster(item2.position, item));
+                if(item2 instanceof seeing_monster){
                     item2.direction = Math.atan2(item.velocity[1], item.velocity[0]);
-                }
-            }
-            for(let item2 of (this.roaming_monsters as {position : point}[]).concat(this.targeted_monsters) ){
-                if(dist(item.position, item2.position) < item.width){
-                    move_lst(item2.position,  repel_monster(item2.position, item));
                 }
             }
         }
@@ -396,6 +399,21 @@ class game implements game_interface{
                 this.collected[i] = true; 
             }
         }
+    }
+    // mutates point 
+    move_wall(point : point , target : point, amt? : number){
+        if(amt != undefined){
+            target = moveTo(point,target,amt) as point;
+        }
+        for(let w of this.walls){
+            let wall = flatten(w)
+            if(doLinesIntersect(point, target, wall)){
+                let intersection = getIntersection(pointToCoefficients(point, target), pointToCoefficients(wall));
+                // target = intersection + (start - intersection) normalized to 0.01
+                target = lincomb(1, intersection, 1, normalize(lincomb(1, point, -1, intersection), 0.01)) as point; 
+            }
+        }
+        move_lst(point, target)
     }
 }
 

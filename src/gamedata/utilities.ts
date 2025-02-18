@@ -1,18 +1,17 @@
 // move player to target location  on screen, update last pos 
 
-import { d_image } from "../canvasDrawing";
-import { dist, lincomb, move_lst , moveTo, num_diffs, rescale } from "../lines";
+import { add_com, d_image, d_line } from "../canvasDrawing";
+import { dist, flatten, lincomb, move_lst , moveIntoRectangleBR, moveIntoRectangleWH, moveTo, num_diffs, rescale } from "../lines";
 import { displace_command } from "../rotation";
-import { mouse_radius, player_screen_speed } from "./constants";
+import { mouse_radius, player_box, player_screen_speed } from "./constants";
 import game from "./game";
 
-export function move_player_to_point(globalStore : globalStore_type, speed : number = player_screen_speed){
-    if(num_diffs(globalStore.target_pos, globalStore.player_pos) > 0){    
-        move_lst(globalStore.player_last_pos, globalStore.player_pos);
-    }
-    if(dist(globalStore.player_pos, globalStore.target_pos) > mouse_radius){
-        globalStore.player_pos = moveTo(globalStore.player_pos, globalStore.target_pos, speed) as point; 
-    }
+export function move_player_to_point(g : game, globalStore : globalStore_type, speed : number = player_screen_speed){
+    let diff = lincomb(1, g.player, -1, globalStore.player_last_pos);
+    globalStore.player_pos = lincomb(1, globalStore.player_pos, 1, diff) as point;
+    globalStore.player_pos = moveIntoRectangleBR(globalStore.player_pos, player_box)  as point;
+
+    globalStore.player_last_pos = [...g.player];
 }
 
 export function draw_monsters(g : game){
@@ -66,8 +65,16 @@ export function draw_coins(g : game){
     return output;
 }
 
+export function draw_walls(g : game){ 
+    let output : draw_command[] = [];
+    for(let wall of g.walls){
+        console.log(wall);
+        output.push(add_com(d_line(flatten(wall)), {width:5, color:"red"}))
+    }
+    return output;
+}
 export function draw_all(g : game){
     let output : draw_command[] = [];
-    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_coins(g));
+    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_coins(g)).concat(draw_walls(g));
     return output;
 }
