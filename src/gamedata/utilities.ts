@@ -19,7 +19,7 @@ export function draw_monsters(g : game){
     // draw all monsters at the position in the game, move them later
     let output : draw_command[] = []; 
     for(let monster of g.monsters){
-        output.push(d_image("images/monster.png", monster))
+        output.push(d_image("images/monster.png", monster.position))
     }
     for(let monster of g.seeing_monsters){
         output.push(d_image("images/seeing_monster.png", monster.position))
