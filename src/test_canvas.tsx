@@ -7,15 +7,16 @@ import { lincomb } from "./lines";
 
 let commands : draw_command[] = []
 
-let fireball : point[] = [[-31,151],[-1,137],[56,120],[120,134],[154,148],[182,176],[194,210],[204,243],[186,283],[150,312],[123,330],[104,337],[77,336],[51,337],[20,331],[-10,320],[-30,316],[-44,316],[-71,309],[-94,305],[-112,302],[-146,300],[-95,295],[-71,289],[-47,289],[-79,281],[-104,276],[-143,268],[-107,259],[-88,259],[-52,246],[-78,242],[-104,243],[-148,236],[-132,230],[-104,227],[-53,218],[-77,209],[-101,209],[-148,202],[-119,191],[-90,181],[-58,163]]
+let swing : point[] = [[2,378],[22,346],[35,297],[32,249],[31,219],[22,177],[17,151],[8,123],[4,106],[-1,93],[14,109],[25,126],[35,154],[42,178],[47,212],[47,248],[45,292],[44,317],[32,355],[21,373],[12,388],[2,383]]
 
-let center = [58,231];
+let sword_command = d_bezier(swing, true)[0] as drawBezierShape_command;
+sword_command.color = {"type":"fill_radial", "x0" : -263, "y0" : 245, "r0" : 1, "x1" : -263, "y1" : 245, "r1" : 317, colorstops : [[0.93, "#cccccc"], [1, "#333333"]] };
 
-commands = d_bezier(fireball, true);
+sword_command = scale_command(displace_command(sword_command, [-2, -378]),[0,0], 100/269, 100/269) as drawBezierShape_command
+sword_command = rotate_command(sword_command, [0,0], Math.PI/2) as drawBezierShape_command;
+commands.push(sword_command)
 
-(commands[0] as drawBezierShape_command).color = {"type":"fill_radial", "x0" : center[0], "y0": center[1], "r0":1 , "x1" : center[0], "y1" : center[1], "r1":140, colorstops : [[0, "white"], [0.3, "yellow"], [1, "red"]]}
-
-commands = commands.map(x => scale_command(displace_command(x, lincomb(-1, center, 1, [0,0]) as point ), [0,0],0.3, 0.3));
+// boilerplate 
 
 console.log(JSON.stringify(commands[0]));
 commands = commands.map(x => displace_command(x, [300,300]));

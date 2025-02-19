@@ -360,11 +360,11 @@ export function rotate_command(command : draw_command, origin : point, amt : num
         break;
         case "drawRectangle":
             new_command = new_command as drawRectangle_command; 
-            return rotate_command({"type":"drawPolygon","color": command.color, "fill":command.fill, "transparency":command.transparency, "width":command.width, points_x : [command.tlx, command.tlx, command.brx, command.brx], points_y : [command.tly, command.bry,command.bry, command.tly]}, origin, amt);
+            return rotate_command({"type":"drawPolygon","color": command.color, "fill":command.fill, "transparency":command.transparency, points_x : [command.tlx, command.tlx, command.brx, command.brx], points_y : [command.tly, command.bry,command.bry, command.tly]}, origin, amt);
         break;
         case "drawRectangle2":
             new_command = new_command as drawRectangle2_command; 
-            return rotate_command({"type":"drawPolygon","color": command.color, "fill":command.fill, "transparency":command.transparency, "width":command.width, points_x : [command.tlx, command.tlx, command.tlx + command.width, command.tlx + command.width], points_y : [command.tly, command.tlx + command.height,command.tlx + command.height, command.tly]}, origin, amt);
+            return rotate_command({"type":"drawPolygon","color": command.color, "fill":command.fill, "transparency":command.transparency,  points_x : [command.tlx, command.tlx, command.tlx + command.width, command.tlx + command.width], points_y : [command.tly, command.tlx + command.height,command.tlx + command.height, command.tly]}, origin, amt);
         break;
     }
     return new_command; 

@@ -34,6 +34,10 @@ function keydown(e : KeyboardEvent, g : game, store : globalStore_type ){
   if(e.key.toLowerCase() == "w"){
     g.cast_fireball_spell(direction_vector[0], direction_vector[1], 60,84);
   }
+  if(e.key.toLowerCase() == "e"){
+    g.start_swing(100, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2);
+    
+  }
 }
 
 function App() {

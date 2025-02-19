@@ -1,10 +1,14 @@
 // move player to target location  on screen, update last pos 
 
-import { add_com, d_image, d_line } from "../canvasDrawing";
+import { add_com, d_image, d_line, d_rect, d_rect2 } from "../canvasDrawing";
 import { dist, flatten, len, lincomb, move_lst , moveIntoRectangleBR, moveIntoRectangleWH, moveTo, num_diffs, rescale } from "../lines";
-import { displace_command } from "../rotation";
+import { displace_command, rotate_command, scale_command } from "../rotation";
 import { mouse_radius, player_box, player_screen_speed } from "./constants";
 import game from "./game";
+
+let canonical_swing : drawBezierShape_command = {"type":"drawBezierShape","x":0,"y":0,"curves":[[11.895910780669144,7.434944237918216,30.111524163568774,12.267657992565054,47.95539033457249,11.152416356877314],[59.10780669144981,10.780669144981406,74.72118959107806,7.43494423791821,84.38661710037174,5.576208178438658],[94.79553903345723,2.230483271375457,101.11524163568772,0.7434944237918152,105.94795539033457,-1.1152416356877415],[100.00000000000001,4.460966542750932,93.68029739776951,8.550185873605935,83.27137546468403,12.267657992565043],[74.34944237918215,14.86988847583642,61.71003717472119,16.728624535315976,48.3271375464684,16.72862453531598],[31.970260223048324,15.985130111524164,22.67657992565056,15.613382899628252,8.550185873605948,11.152416356877323],[1.8587360594795534,7.063197026022304,-3.7174721189591073,3.717472118959108,-1.8587360594795537,2.2762951657013997e-16]],"color":{"type":"fill_radial","x0":49.44237918215611,"y0":-98.51301115241635,"r0":0.37174721189591076,"x1":49.44237918215611,"y1":-98.51301115241635,"r1":117.84386617100371,"colorstops":[[0.93,"#cccccc"],[1,"#333333"]]}};
+
+
 
 export function move_player_to_point(g : game, globalStore : globalStore_type, speed : number = player_screen_speed){
     // compute difference with last game location to know where to draw player
@@ -65,6 +69,13 @@ export function draw_fireball_spells(g : game){
     return output;
 }
 
+export function draw_swing(g : game){
+    if(g.swing != undefined){
+        return [displace_command(rotate_command(scale_command(canonical_swing,[0,0], 110/g.swing.size,110/g.swing.size) , [0,0], g.swing.angle), g.player)]
+    } else {
+        return []
+    }
+}
 export function draw_trees(g : game){
     let output : draw_command[] = [];
     for(let tree of g.trees) {
@@ -92,6 +103,6 @@ export function draw_walls(g : game){
 }
 export function draw_all(g : game){
     let output : draw_command[] = [];
-    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_fireball_spells(g)).concat(draw_coins(g)).concat(draw_walls(g));
+    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_fireball_spells(g)).concat(draw_swing(g)).concat(draw_coins(g)).concat(draw_walls(g));
     return output;
 }

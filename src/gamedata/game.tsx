@@ -1,6 +1,6 @@
 import _, { flatten } from "lodash";
 import { game_interface, point } from "../interfaces";
-import { dist, doLinesIntersect, getIntersection, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointInsidePolygon, pointToCoefficients, vector_angle } from "../lines";
+import { angle_between, dist, doLinesIntersect, dot, getIntersection, len, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointInsidePolygon, pointToCoefficients, rescale, vector_angle } from "../lines";
 import { rotate_command, scale_command } from "../rotation";
 
 class monster { 
@@ -130,6 +130,7 @@ export function repel_monster(x : point, y : repel_spell) {
     return position; 
 }
 
+type swing_type = {"angle" : number, "velocity" : number, size : number, "lifespan" : number};
 
 class game implements game_interface{
     //fundamentals 
@@ -147,6 +148,7 @@ class game implements game_interface{
     roaming_monsters : roaming_monster[] = []; 
     targeted_monsters : targeted_monster[] = [];
 
+    swing : undefined | swing_type = undefined
     // common stuff
     trees : point[] = []; 
     seen_time : number = 0;
@@ -288,6 +290,7 @@ class game implements game_interface{
             this.targeted_monsters.forEach(x => x.tick(this));
             this.handle_repel();
             this.handle_fireball();
+            this.handle_swing();
             this.handle_collect();
             this.clear_deleted_monsters();
         }
@@ -396,7 +399,12 @@ class game implements game_interface{
         this.fireball_spells.push(new fireball_spell(this.player, v, width, lifespan));
         
     }
-
+    start_swing(size : number, angle : number, lifespan : number, velocity : number){
+        // angle is CENTER of swing
+        // rescale(0, lifespan, start_angle, start_angle + velocity * lifespan, lifespan/2 ) = angle
+        let start_angle = angle - velocity * lifespan/2; 
+        this.swing = {"angle" : start_angle, "velocity" : velocity, "lifespan" : lifespan, "size" : size}
+    }
     seeing_monster_see_player(firstone : boolean = false) : number[]{ // indices of monsters that see the player
         let seen = [];
         for(let [i, monster] of this.seeing_monsters.entries()){
@@ -408,6 +416,12 @@ class game implements game_interface{
             }
         }
         return seen; 
+    }
+    get_monsters(){
+        return this.monsters.concat(this.seeing_monsters).concat(this.roaming_monsters).concat(this.targeted_monsters);
+    }
+    attack_monster(monster : monster, type : "fireball" | "swing"){
+        monster.name += " deleted";
     }
     handle_repel(){
         // repel monsters
@@ -429,13 +443,36 @@ class game implements game_interface{
         for(let item of this.fireball_spells){
             item.position = lincomb(1, item.position, 1, item.velocity) as point; 
             item.tick();
-            for(let item2 of this.monsters.concat(this.seeing_monsters).concat(this.roaming_monsters).concat(this.targeted_monsters)){
+            for(let item2 of this.get_monsters()){
                 if(dist(item.position, item2.position) < item.width){
-                    item2.name = "deleted " + item2.name; 
+                    this.attack_monster(item2, "fireball")
                 }
             }
         }
         this.fireball_spells = this.fireball_spells.filter(x => x.lifespan > 0);
+    }
+    handle_swing(){
+        if(this.swing != undefined){
+            for(let monster of this.get_monsters()){
+                let v = lincomb(1, monster.position, -1, this.player); 
+                let distance = len(v);
+                if(distance == 0){
+                    this.attack_monster(monster, "swing");
+                } else if(distance <= this.swing.size) {
+                    // compare angle 
+                    let angle =angle_between(v,[Math.cos(this.swing.angle), Math.sin(this.swing.angle)]);
+                    if(angle < 1.2 * this.swing.velocity){
+                        this.attack_monster(monster, "swing");
+                    } 
+                }
+            }
+            this.swing.angle += this.swing.velocity;
+            this.swing.lifespan--;
+            console.log(this.swing.lifespan);
+            if(this.swing.lifespan <= 0){
+                this.swing = undefined;
+            }
+        }
     }
     handle_collect(){
         for(let [i, coin] of this.coin_points.entries()){

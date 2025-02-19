@@ -182,6 +182,10 @@ export function dot(a : number[],b : number[]){
 	return s; 
 }
 
+export function angle_between(v1 : number[],  v2 : number[]){
+	return Math.acos(dot(normalize(v1, 1), normalize(v2, 1)))
+}
+
 export function rescale(source_start : number, source_end : number, dest_start : number, dest_end : number, value : number) : number{
 	let source_length = source_end - source_start
 	let dest_length = dest_end - dest_start
