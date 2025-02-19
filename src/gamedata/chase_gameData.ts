@@ -59,7 +59,7 @@ export let prop_commands : prop_commands_type = function(g : game,globalStore : 
     
     // if at least 5 monsters are touching the player :
     let x = _.countBy(g.monsters.map(x => dist(x.position, g.player) < 10 ? "a" : "b") )["a"];
-    if(x >= 5){
+    if(x >= 50){
         return [["new_game", null]];
     }
     let output : props_to_run = []; 

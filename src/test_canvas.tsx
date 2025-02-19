@@ -1,44 +1,24 @@
 import { useRef, useEffect } from "react";
 import { draw } from "./process_draws";
 import { flatten } from "lodash";
-import { add_com, d_bezier, d_circle, drawBezierShape } from "./canvasDrawing";
+import { add_com, d_bezier, d_circle, drawBezierShape, make_style } from "./canvasDrawing";
 import { displace_command, rotate_command, scale_command } from "./rotation";
+import { lincomb } from "./lines";
 
 let commands : draw_command[] = []
-let arc : point[] =  [[5,185],[12,202],[15,221],[14,245],[24,257],[32,261],[40,263]]
 
-function y_flip(p : point, y : number){
-    let dist = y - p[1]
-    return [p[0], y + dist ]
-}
+let fireball : point[] = [[-31,151],[-1,137],[56,120],[120,134],[154,148],[182,176],[194,210],[204,243],[186,283],[150,312],[123,330],[104,337],[77,336],[51,337],[20,331],[-10,320],[-30,316],[-44,316],[-71,309],[-94,305],[-112,302],[-146,300],[-95,295],[-71,289],[-47,289],[-79,281],[-104,276],[-143,268],[-107,259],[-88,259],[-52,246],[-78,242],[-104,243],[-148,236],[-132,230],[-104,227],[-53,218],[-77,209],[-101,209],[-148,202],[-119,191],[-90,181],[-58,163]]
 
-function x_magnify(p : point, amount : number){
-    return [p[0] * amount , p[1]];
-}
+let center = [58,231];
 
-let initial_points : point[] = [[0, 185],[4,202],[6,221],[3,245],[5,257],[8,261],[11,263]]
+commands = d_bezier(fireball, true);
 
-let bottom_points = initial_points.slice(0, initial_points.length-1).reverse().map(x => y_flip(x, 263) as point); 
+(commands[0] as drawBezierShape_command).color = {"type":"fill_radial", "x0" : center[0], "y0": center[1], "r0":1 , "x1" : center[0], "y1" : center[1], "r1":140, colorstops : [[0, "white"], [0.3, "yellow"], [1, "red"]]}
 
-let left_points = initial_points.concat(bottom_points);
+commands = commands.map(x => scale_command(displace_command(x, lincomb(-1, center, 1, [0,0]) as point ), [0,0],0.3, 0.3));
 
-
-let points : point[] = left_points.concat(left_points.slice(0 , left_points.length-1).reverse().map(x => x[0] == 11 ? x_magnify(x, 2) as point : (x[0] == 8 ? x_magnify(x, 3) as point: x_magnify(x, 5) as point))); 
-
-console.log(points)
-
-let style : fill_linear = {"type":"fill_linear", x0 :0, y0 : 263, x1 : 11, y1 : 263, colorstops : [[0, "#ffffff"], [0.9, "#ccccff"], [1, "#bbbbff"]] };
-
-let cmd = add_com(d_bezier(points, true)[0], {color:style}) as draw_command;
-
-
-cmd = displace_command(cmd, [0,-263]);
-cmd = scale_command(cmd, [0,0], 1, 100/156);
-cmd = rotate_command(cmd, [0,0], 1); 
-cmd = displace_command(cmd, [100,100]);
-console.log(JSON.stringify(cmd));
-commands = commands.concat(JSON.parse(JSON.stringify(cmd)));
-
+console.log(JSON.stringify(commands[0]));
+commands = commands.map(x => displace_command(x, [300,300]));
 
 function test_canvas(){
     let canvasRef = useRef<HTMLCanvasElement>(null); 

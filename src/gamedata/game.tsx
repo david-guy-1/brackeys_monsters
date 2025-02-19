@@ -84,6 +84,9 @@ class targeted_monster extends monster{
 
 let canonical_repel : draw_command = {"type":"drawBezierShape","x":0,"y":-50.00000000000001,"curves":[[4,-39.10256410256411,6,-26.923076923076927,3,-11.53846153846154],[5,-3.8461538461538467,8,-1.2820512820512822,11,0],[8,1.2820512820512822,5,3.8461538461538467,3,11.53846153846154],[6,26.923076923076927,4,39.10256410256411,0,50.00000000000001],[20,39.10256410256411,30,26.923076923076927,15,11.53846153846154],[25,3.8461538461538467,24,1.2820512820512822,22,0],[24,-1.2820512820512822,25,-3.8461538461538467,15,-11.53846153846154],[30,-26.923076923076927,20,-39.10256410256411,0,-50.00000000000001]],"color":{"type":"fill_linear","x0":0,"y0":0,"x1":11,"y1":0,"colorstops":[[0,"#ffffff"],[0.9,"#ccccff"],[1,"#bbbbff"]]}}
 
+let canonical_fireball : draw_command = {"type":"drawBezierShape","x":-26.7,"y":-24,"curves":[[-17.7,-28.2,-0.6,-33.3,18.599999999999998,-29.099999999999998],[28.799999999999997,-24.9,37.199999999999996,-16.5,40.8,-6.3],[43.8,3.5999999999999996,38.4,15.6,27.599999999999998,24.3],[19.5,29.7,13.799999999999999,31.799999999999997,5.7,31.5],[-2.1,31.799999999999997,-11.4,30,-20.4,26.7],[-26.4,25.5,-30.599999999999998,25.5,-38.699999999999996,23.4],[-45.6,22.2,-51,21.3,-61.199999999999996,20.7],[-45.9,19.2,-38.699999999999996,17.4,-31.5,17.4],[-41.1,15,-48.6,13.5,-60.3,11.1],[-49.5,8.4,-43.8,8.4,-33,4.5],[-40.8,3.3,-48.6,3.5999999999999996,-61.8,1.5],[-57,-0.3,-48.6,-1.2,-33.3,-3.9],[-40.5,-6.6,-47.699999999999996,-6.6,-61.8,-8.7],[-53.1,-12,-44.4,-15,-34.8,-20.4]],"color":{"type":"fill_radial","x0":0,"y0":0,"r0":0.3,"x1":0,"y1":0,"r1":42,"colorstops":[[0,"white"],[0.3,"yellow"],[1,"red"]]}};
+
+
 export class repel_spell {
     position:point;
     velocity:point;
@@ -96,6 +99,24 @@ export class repel_spell {
         this.width=width;
         this.lifespan = lifespan; 
         this.draw = rotate_command(scale_command(canonical_repel, [0,0], 1, width/100), [0,0], Math.atan2(velocity[1], velocity[0]))
+    }
+    tick(){
+        this.lifespan--;
+    }
+}
+
+export class fireball_spell {
+    position:point;
+    velocity:point;
+    width:number;
+    draw : draw_command;
+    lifespan : number; 
+    constructor(position : point,velocity : point,width : number, lifespan : number){
+        this.position=position;
+        this.velocity=velocity;
+        this.width=width;
+        this.lifespan = lifespan; 
+        this.draw = rotate_command(scale_command(canonical_fireball, [0,0],  width/100, width/100), [0,0], Math.atan2(velocity[1], velocity[0]))
     }
     tick(){
         this.lifespan--;
@@ -130,6 +151,7 @@ class game implements game_interface{
     trees : point[] = []; 
     seen_time : number = 0;
     repel_spells : repel_spell[] = []; 
+    fireball_spells : fireball_spell[] = [];
     walls : [point, point][]  = []; 
     // escort stuff
     escort_points : point[] = [];
@@ -149,6 +171,7 @@ class game implements game_interface{
         this.targeted_monsters = []; 
         this.trees = [];
         this.repel_spells = [];
+        this.fireball_spells = [];
         this.seen_time = 0;
         this.walls = [];
         this.time = 0; 
@@ -264,6 +287,7 @@ class game implements game_interface{
             this.roaming_monsters.forEach(x => x.tick(this));
             this.targeted_monsters.forEach(x => x.tick(this));
             this.handle_repel();
+            this.handle_fireball();
             this.handle_collect();
         }
         if(this.mode == "chase"){
@@ -360,11 +384,17 @@ class game implements game_interface{
         }
         return [];
     }
-
+    // all of these are WORLD (not canvas) coordinates , the game doesn't even know there is a canvas! 
     cast_repel_spell (x : number, y : number,  lifespan : number, width : number = 100, velocity : number = 10){
         let v = normalize ([x,y], velocity) as point; 
         this.repel_spells.push(new repel_spell(this.player, v, width, lifespan));
     }
+
+    cast_fireball_spell (x : number, y : number,  lifespan : number, width : number = 100, velocity : number = 10){
+        let v = normalize ([x,y], velocity) as point; 
+        this.fireball_spells.push(new fireball_spell(this.player, v, width, lifespan));
+    }
+
     seeing_monster_see_player(firstone : boolean = false) : number[]{ // indices of monsters that see the player
         let seen = [];
         for(let [i, monster] of this.seeing_monsters.entries()){
@@ -392,6 +422,13 @@ class game implements game_interface{
             }
         }
         this.repel_spells = this.repel_spells.filter(x => x.lifespan > 0);
+    }
+    handle_fireball(){
+        for(let item of this.fireball_spells){
+            item.position = lincomb(1, item.position, 1, item.velocity) as point; 
+            item.tick();
+        }
+        this.fireball_spells = this.fireball_spells.filter(x => x.lifespan > 0);
     }
     handle_collect(){
         for(let [i, coin] of this.coin_points.entries()){

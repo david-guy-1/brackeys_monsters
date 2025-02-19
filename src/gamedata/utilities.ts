@@ -48,6 +48,14 @@ export function draw_repel_spells(g : game){
     return output;
 }
 
+export function draw_fireball_spells(g : game){
+    let output : draw_command[] = [];
+    for(let spell of g.fireball_spells){
+        output.push(displace_command(spell.draw, lincomb(1, [0,0], 1, spell.position) as point)); 
+    }    
+    return output;
+}
+
 export function draw_trees(g : game){
     let output : draw_command[] = [];
     for(let tree of g.trees) {
@@ -75,6 +83,6 @@ export function draw_walls(g : game){
 }
 export function draw_all(g : game){
     let output : draw_command[] = [];
-    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_coins(g)).concat(draw_walls(g));
+    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_fireball_spells(g)).concat(draw_coins(g)).concat(draw_walls(g));
     return output;
 }
