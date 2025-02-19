@@ -1,6 +1,6 @@
 import _, { flatten } from "lodash";
 import { game_interface, point } from "../interfaces";
-import { angle_between, dist, doLinesIntersect, dot, getIntersection, len, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointInsidePolygon, pointToCoefficients, rescale, vector_angle } from "../lines";
+import { angle_between, bfs, dist, doLinesIntersect, dot, getIntersection, len, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointInsidePolygon, pointInsideRectangleWH, pointToCoefficients, rescale, vector_angle } from "../lines";
 import { rotate_command, scale_command } from "../rotation";
 
 class monster { 
@@ -135,7 +135,7 @@ type swing_type = {"angle" : number, "velocity" : number, size : number, "lifesp
 class game implements game_interface{
     //fundamentals 
     dims : point = [0,0]; // width, height
-    mode : "chase" | "move" | "stealth" | "repel" | "escort" | "collect" = "chase"; 
+    mode : "chase" | "move" | "stealth" | "repel" | "escort" | "collect" | "maze" = "chase"; 
     time : number = 0;
 
     // player movement
@@ -164,6 +164,12 @@ class game implements game_interface{
     // coin stuff
     coin_points : point[] = []; 
     collected : boolean[] = [];
+    
+    // maze stuff
+    // re-use player, coin_points and dims
+    maze_points : boolean[][] = []; // this is x,y (opposite of matrices)
+    maze_chops : number = 0; 
+    maze_chops_init : number = 0;
 
     constructor(){} ; // no constructor 
     clear(){
@@ -180,6 +186,7 @@ class game implements game_interface{
         this.escort_points = [];
         this.coin_points = [];
         this.collected = []; 
+        this.maze_points = []; 
     }
     setup_chase(w : number, h : number){
         this.clear()
@@ -270,8 +277,46 @@ class game implements game_interface{
             this.targeted_monsters.push(new targeted_monster([...spawn] as point, [...spawn] as point, 3 + 4 * Math.random())); 
         }
     }
-    // discrete move;
 
+    // discrete move;
+    setup_maze(w : number, h : number){
+        this.clear()
+        this.mode = "maze";
+        this.dims = [w,h];
+        this.player = [0,0];
+        for(let i=0; i < w; i++){
+            this.maze_points.push([]);
+            for(let j=0; j < h; j++){
+                this.maze_points[i].push(Math.random() < 0.6); // random stuff
+            }
+        }
+        this.maze_points[0][0] = false
+        this.maze_points[w-1][h-1] = false
+        let bfs_next = function(this:game, s : string ){
+            let [x,y,chops] = JSON.parse(s); 
+            if(x == w && y == h){
+                return [];
+            }
+            let next_points = [[x, y+1], [x, y-1], [x-1, y], [x+1, y]].filter(([x,y]) => pointInsideRectangleWH(x,y,-0.01, -0.01, this.dims));
+            let strings : string[] = []; 
+            for(let [x2, y2] of next_points){
+                if(this.maze_points[x2][y2]){
+                    strings.push(JSON.stringify([x2, y2, chops+1])) 
+                } else {
+                    strings.push(JSON.stringify([x2, y2, chops])) 
+                }
+            }
+            return strings; 
+        }.bind(this);
+
+        let result = bfs(bfs_next,JSON.stringify([0,0,0]), function(s : string){
+            let [x,y,chops] = JSON.parse(s);
+            return chops > w + h; 
+        }); 
+        this.maze_chops = _.min(result.map(x => JSON.parse(x)).filter(([a,b,c]) => a == w-1 && b == h-1).map(([a,b,c]) => c));
+        this.maze_chops_init = this.maze_chops;
+
+    }
     move_player_disc(input : point){
         if(this.mode == "move"){
             this.player = lincomb(1, this.player, 1, input) as point;
@@ -481,6 +526,23 @@ class game implements game_interface{
             }
         }
     }
+
+    //for maze stuff
+    is_tree(x : number, y : number){
+        let tree = this.maze_points[x][y];
+        for(let coll of this.coin_points){
+            if(x == coll[0] && y == coll[1]){
+                tree = false; 
+            }
+        }
+        return tree
+    }
+    restart_maze(){
+        this.coin_points = [];
+        this.maze_chops = this.maze_chops_init;
+        this.player = [0,0];
+    }
+
     // looks for "deleted" in name
     clear_deleted_monsters(){
         for(let lst of [this.monsters, this.seeing_monsters, this.roaming_monsters, this.targeted_monsters]){

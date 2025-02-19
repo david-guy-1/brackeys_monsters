@@ -254,6 +254,29 @@ export function number_to_hex(n : number) : string {
     return number_to_hex(Math.floor(n/16)) + "0123456789abcdef"[n%16] 
 }
 
+function get_keys(s : Set<string>, obj : any){
+	// mutates s
+	if(Array.isArray(obj)){
+		for(let item of obj){
+			get_keys(s, item);
+		}
+	} else if (typeof(obj) == "object"){
+		for(let item of Object.keys(obj)){
+			s.add(item)
+			get_keys(s, obj[item]); 
+		}
+	}
+}
+
+
+export function json_alphabetical(obj : any) : string{
+	let keys = new Set<string>();
+	get_keys(keys, obj);
+	let keys_lst = [...keys]
+	keys_lst.sort()
+	return JSON.stringify(obj, keys_lst)
+
+}
 
 export function all_choices<T>(x : T[], amt : number) : T[][]{
 	if(amt == 0 ){

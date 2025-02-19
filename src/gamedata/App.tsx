@@ -7,6 +7,7 @@ import { data_obj as stealth_obj } from './stealth_gameData';
 import { data_obj as repel_obj } from './repel_gameData';
 import { data_obj as escort_obj } from './escort_gameData';
 import { data_obj as collect_obj } from './collect_gameData';
+import { data_obj as maze_obj } from './maze_gameData';
 import { events } from '../EventManager';
 import GameDisplay, { clone_gamedata } from '../GameDisplay';
 import { dist, lincomb, moveIntoRectangleBR, normalize } from '../lines';
@@ -57,7 +58,7 @@ function App() {
   events["mousemove a"] = [move_canvas, null]
   events["keydown a"] = [keydown, null];
   if(mode == "menu"){
-      return <button onClick={() => {setG(new game()); setMode("chase");} }>Click to start</button>;
+      return <button onClick={() => {setG(new game()); setMode("maze");} }>Click to start</button>;
     }else if (mode == "chase"){
       // set up game 
       g?.setup_chase(2000, 2000)
@@ -97,8 +98,14 @@ function App() {
       g?.setup_collect(2000, 2000);
       data = clone_gamedata(collect_obj); 
       data.g = g;
-      data.prop_fns["new_game"] =  () => transition("chase");
+      data.prop_fns["new_game"] =  () => transition("maze");
       // register event listener;
+  } else if (mode == "maze"){
+    g?.setup_maze(18,15);
+    data = clone_gamedata(maze_obj); 
+    data.g = g;
+    data.prop_fns["new_game"] =  () => transition("chase");
+      
   }
   else if (mode == "test"){
     return <Test_canvas />;
