@@ -57,9 +57,8 @@ export let prop_commands : prop_commands_type = function(g : game,globalStore : 
     // move player towards target
     move_player_to_point(g, globalStore);
     
-    // if at least 5 monsters are touching the player :
-    let x = _.countBy(g.monsters.map(x => dist(x.position, g.player) < 10 ? "a" : "b") )["a"];
-    if(x >= 50){
+    // if all monsters are dead
+    if(g.monsters.length == 0){
         return [["new_game", null]];
     }
     let output : props_to_run = []; 
