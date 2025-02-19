@@ -7,6 +7,12 @@ import { mouse_radius, player_box, player_screen_speed } from "./constants";
 import game from "./game";
 
 export function move_player_to_point(g : game, globalStore : globalStore_type, speed : number = player_screen_speed){
+    // move player based on mose 
+    let scroll = lincomb(1, g.player, -1, globalStore.player_pos) as point;  
+    if(dist(globalStore.mouse_pos, globalStore.player_pos) > mouse_radius ){
+        g.target= lincomb(1, g.player,1,  lincomb(1,  globalStore.mouse_pos, -1, globalStore.player_pos)) as point; 
+    }
+    // compute difference with last game location to know where to draw player
     let diff = lincomb(1, g.player, -1, globalStore.player_last_pos);
     globalStore.player_pos = lincomb(1, globalStore.player_pos, 1, diff) as point;
     globalStore.player_pos = moveIntoRectangleBR(globalStore.player_pos, player_box)  as point;

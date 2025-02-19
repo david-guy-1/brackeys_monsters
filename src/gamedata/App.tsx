@@ -18,12 +18,6 @@ function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
   if(g.mode == "chase" || g.mode == "stealth" || g.mode == "escort" || g.mode == "collect"){
     if((e.target as HTMLElement).getAttribute("data-key")?.indexOf("main_canvas") != -1){ // topmost canvas element that is valid
       store.mouse_pos = [e.offsetX, e.offsetY];// set mouse position 
-      if(dist([e.offsetX, e.offsetY], store.player_pos) > mouse_radius ){
-        let scroll = lincomb(1, g.player, -1, store.player_pos) as point;  
-        // move the player
-        g.target= lincomb(1, [e.offsetX, e.offsetY], 1, scroll) as point;  
-        store.target_pos = moveIntoRectangleBR(  [e.offsetX, e.offsetY] ,player_box ) as point ;
-      }
     }
   }
 }
@@ -54,7 +48,7 @@ function App() {
     return <></>
   }
   // default store, override it if necessary 
-  let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, target_pos: lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0]}; 
+  let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0]}; 
   let data : gamedata = clone_gamedata(chase_obj);
   events["mousemove a"] = [move_canvas, null]
   events["keydown a"] = [keydown, null];

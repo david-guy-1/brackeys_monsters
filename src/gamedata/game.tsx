@@ -289,6 +289,7 @@ class game implements game_interface{
             this.handle_repel();
             this.handle_fireball();
             this.handle_collect();
+            this.clear_deleted_monsters();
         }
         if(this.mode == "chase"){
             return this.tick_chase();
@@ -393,6 +394,7 @@ class game implements game_interface{
     cast_fireball_spell (x : number, y : number,  lifespan : number, width : number = 100, velocity : number = 10){
         let v = normalize ([x,y], velocity) as point; 
         this.fireball_spells.push(new fireball_spell(this.player, v, width, lifespan));
+        
     }
 
     seeing_monster_see_player(firstone : boolean = false) : number[]{ // indices of monsters that see the player
@@ -427,6 +429,11 @@ class game implements game_interface{
         for(let item of this.fireball_spells){
             item.position = lincomb(1, item.position, 1, item.velocity) as point; 
             item.tick();
+            for(let item2 of this.monsters.concat(this.seeing_monsters).concat(this.roaming_monsters).concat(this.targeted_monsters)){
+                if(dist(item.position, item2.position) < item.width){
+                    item2.name = "deleted " + item2.name; 
+                }
+            }
         }
         this.fireball_spells = this.fireball_spells.filter(x => x.lifespan > 0);
     }
@@ -434,6 +441,16 @@ class game implements game_interface{
         for(let [i, coin] of this.coin_points.entries()){
             if(dist(this.player, coin) < 60) {
                 this.collected[i] = true; 
+            }
+        }
+    }
+    // looks for "deleted" in name
+    clear_deleted_monsters(){
+        for(let lst of [this.monsters, this.seeing_monsters, this.roaming_monsters, this.targeted_monsters]){
+            for(let i=lst.length-1; i>= 0; i--){
+                if(lst[i].name.indexOf("deleted") != -1){
+                    lst.splice(i,1);
+                }
             }
         }
     }
