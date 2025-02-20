@@ -2,9 +2,12 @@ import _, { flatten } from "lodash";
 import { game_interface, point } from "../interfaces";
 import { angle_between, bfs, dist, doLinesIntersect, dot, getIntersection, len, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointClosestToSegment, pointInsidePolygon, pointInsideRectangleWH, pointToCoefficients, rescale, vector_angle } from "../lines";
 import { rotate_command, scale_command } from "../rotation";
+import { d_image } from "../canvasDrawing";
+import { dag } from "../dag";
+import { canvas_size } from "./constants";
 
-export function get_image(m : monster){
-    return "monster"; 
+export function get_draw_commands(m : monster): draw_command[]{
+    return [d_image("images/monster.png", m.position)];
 }
 
 export class monster { 
@@ -196,7 +199,50 @@ class game implements game_interface{
     potions : string[] = [];
     already_put : string[] = [];
 
-    constructor(){} ; // no constructor 
+    // dag 
+    graph : dag
+    towns : Record<string, Set<string>>; 
+    collected_dag : Set<string> = new Set();
+    town_locations : Record<string, point>; 
+    constructor(){
+        let n_vertices = 30; 
+        this.graph = new dag(_.range(n_vertices).map(x => x.toString()), []);  
+        for(let i=0; i<n_vertices; i++){
+            try {
+                this.graph.add_edge(Math.floor(Math.random() * n_vertices).toString(), Math.floor(Math.random() * n_vertices).toString());
+                this.graph.add_edge(i.toString(), Math.floor(Math.random() * n_vertices).toString());
+
+            }catch(e){
+
+            }
+        }
+        while(true){
+            let n_towns = Math.ceil(n_vertices/3);
+            this.towns = {}; 
+            for (let i=0 ;i<n_towns; i++){
+                this.towns[i.toString()] = new Set(); 
+            }
+            for(let i=0; i<n_vertices; i++){
+                this.towns[Math.floor(Math.random() * n_towns).toString()].add(i.toString());
+                
+            }
+            if(_.every(Object.values(this.towns).map(x => x.size != 0))){
+                break;
+            }
+        }
+        this.town_locations = {};
+        for(let item of Object.keys(this.towns)){
+            while(true){
+                let next_point : point = [Math.random() * canvas_size[0], Math.random() * canvas_size[1]];
+                if(_.some(Object.values(this.town_locations).map(x => dist(x, next_point) < 100))){
+                } else {
+                    this.town_locations[item] = next_point;
+                    break; 
+                }
+            }
+        }
+        console.log([this.towns, this.town_locations]);
+    } ; 
     clear(){
         this.monsters = []; 
         this.trees = [];
@@ -638,7 +684,6 @@ class game implements game_interface{
         for(let monster of this.get_monsters()){
             if(monster.lasering && monster.lasering.type == "active"){
                 let dist = pointClosestToSegment(this.player, monster.position, lincomb(1, monster.position, monster.lasering.range, [Math.cos(monster.lasering.direction), Math.sin(monster.lasering.direction)]))[2];
-                console.log(dist)
                 if(dist < 7){
                     console.log("lasered");
                 }

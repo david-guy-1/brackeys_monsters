@@ -427,7 +427,7 @@ export function getIntersection(line1:point3d , line2:point3d) : point{
  export function pointToCoefficients(...args : (number | number[])[] ) : point3d{
 	let lst = flatten_all(args);
 	if(lst.length !=4){
-		throw "pointToCoefficients must have 4 points";
+		throw "pointToCoefficients must have 6 points";
 	}
 	let [p1x, p1y, p2x , p2y] = lst; 
 	noNaN(arguments as any);
@@ -529,6 +529,7 @@ export function pointClosestToSegment(...args : (number | number[])[] ) : point3
 		}
 	}
 }
+
 
 
  export function between(x:number ,b1:number , b2:number){ // returns if x is between b1 and b2  (inclusive:number)

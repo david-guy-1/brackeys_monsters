@@ -15,6 +15,8 @@ import { between, cell_index, dist, lincomb, moveIntoRectangleBR, normalize } fr
 import { canvas_size, cauldron_pos, mouse_radius, player_box, potion_size, potion_start, potions_per_row } from './constants';
 import  Test_canvas  from '../test_canvas';
 import { gamedata } from '../interfaces';
+import MainMap from './MainMap';
+import { loadImage } from '../canvasDrawing';
 
 function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
   if(g.mode == "chase" || g.mode == "stealth" || g.mode == "escort" || g.mode == "collect" || g.mode == "potions"){
@@ -57,6 +59,8 @@ function keydown(e : KeyboardEvent, g : game, store : globalStore_type ){
   }
 }
 
+
+
 function App() {
   const [g, setG] = useState<game | undefined>(undefined);
   const [mode, setMode] = useState<string>("menu");
@@ -75,8 +79,18 @@ function App() {
   events["click a"] = [click_fn, null]
   events["keydown a"] = [keydown, null];
   if(mode == "menu"){
-      return <button onClick={() => {setG(new game()); setMode("chase");} }>Click to start</button>;
-    }else if (mode == "chase"){
+      let image_files = ['background.png', 'bg2.png', 'bg3.png', 'bg4.png', 'bg5.png', 'cauldron.png', 'closed_town.png', 'coin.png', 'escorted.png', 'monster.png', 'open_town.png', 'person.png', 'player.png', 'player_maze.png', 'roaming_monster.png', 'seeing_monster.png', 'targeted_monster.png', 'thingy.png', 'tree.png'];
+
+      let promises = Promise.allSettled(image_files.map(x => loadImage("images/" + x)))
+    
+      return <button onClick={() => {promises.then(() =>{ setG(new game()); setMode("map");})}}>Click to start</button>;
+  }
+  else if (mode == "map"){
+    if(g){
+      return <MainMap g={g} recall={(s : string) => transition(s)}/>
+    }
+  }  
+  else if (mode == "chase"){
       // set up game 
       g?.setup_chase(2000, 2000)
       data = clone_gamedata(chase_obj); 
