@@ -427,7 +427,7 @@ export function getIntersection(line1:point3d , line2:point3d) : point{
  export function pointToCoefficients(...args : (number | number[])[] ) : point3d{
 	let lst = flatten_all(args);
 	if(lst.length !=4){
-		throw "pointToCoefficients must have 6 points";
+		throw "pointToCoefficients must have 4 points";
 	}
 	let [p1x, p1y, p2x , p2y] = lst; 
 	noNaN(arguments as any);
@@ -440,6 +440,96 @@ export function getIntersection(line1:point3d , line2:point3d) : point{
 		return [-m, 1, b];
 	}
 }
+
+// [x, y] : point , [a,b,c] : line
+export function pointClosestToLine(...args : (number | number[])[] ) : point3d{
+	let lst = flatten_all(args);
+	if(lst.length !=5){
+		throw "pointClosestToLine must have 5 points";
+	}
+	noNaN(arguments as any);
+	
+	// want to minimize (x -p1)^2 + (y-p2)^2 subject to ax+by=c, use lagrange multipliers
+	// L(x, y) = f(x,y) - \lambda g(x,y) - take partials and set them all to zero
+	// (x - p1)^2 + (y - p2)^2 - \lambda (ax + by - c) 
+	// dx = 2 (x-p1) - a \lambda
+	// dy = 2 (y-p2) - b \lambda
+	// d \lambda = ax + by - c
+	// expand, we get the system of linear equations:
+	// 2x - 2 p1 - a \lambda 
+	// 2y - 2 p2 - b \lambda
+	// ax + by - c
+	// [2, 0, -a] 2p1
+	// [0, 2, -b] 2p2
+	// [a, b, 0] c
+	// do Gaussian elimination : 
+	// [2, 0, -a] 2p1
+	// [a, b, 0] c
+	// [0, 2, -b] 2p2
+	// r1 / 2
+	// [1, 0, -a/2] p1
+	// [a, b, 0] c
+	// [0, 2, -b] 2p2
+	// r2 = r2 -a* r1 
+	// [1, 0, -a/2] p1
+	// [0, b, a^2/2] c - a*p1
+	// [0, 2, -b] 2p2
+	// r3 = r3 / 2
+	// [1, 0, -a/2] p1
+	// [0, b, a^2/2] c - a*p1
+	// [0, 1, -b/2] p2
+	
+	// assume b != 0 , if b = 0, we have y = p2, lambda = (c - a *p1)/(a^2/2), and x = p1 - lambda * (-a/2) = c/a
+	// otherwise: 
+
+	// r3 = r3 -(1/b)* r2
+	// [1, 0, -a/2] p1
+	// [0, b, a^2/2] c - a*p1
+	// [0, 0, -b/2 - a^2/(2b)] p2 - (c - a*p1)/b
+
+
+	let [p1, p2,a,b,c] = lst; 
+	if(b == 0){
+		// line is of the form x = c/a
+		return [c/a, p2, dist([p1, p2], [c/a, p2])]; 
+	}
+	let lambda = (p2 - (c - a*p1)/b)/ (-b/2 - a*a/(2*b));
+	let y= ((c - a*p1) -  lambda * a*a/2)/b
+	let x = p1 + a/2 * lambda
+	return [x,y, dist([p1, p2], [x,y])];
+}
+
+export function pointClosestToSegment(...args : (number | number[])[] ) : point3d{
+	let lst = flatten_all(args);
+	if(lst.length !=6){
+		throw "pointClosestToSegment must have 6 points";
+	}
+	noNaN(arguments as any);
+	
+	let [x, y, l1x, l1y, l2x, l2y] = lst;
+	let closest_point = pointClosestToLine(x,y,pointToCoefficients(l1x, l1y, l2x, l2y)); 
+	let between_ = false; 
+	if(l1x == l2x) {
+		// vertical line, test x value
+		between_ = between(closest_point[0], l1x, l2x); 
+	} else{
+		// test y value
+		between_ = between(closest_point[1], l1y, l2y); 
+	}
+	if(between_){
+		return closest_point;
+	} else {
+		// check endpoints
+		let d1 = dist([x,y], [l1x, l1y])
+		let d2 = dist([x,y], [l2x, l2y])
+		if(d1 < d2){
+			return [l1x, l1y, d1];
+		} else {
+			return [l2x, l2y, d2];
+		}
+	}
+}
+
 
  export function between(x:number ,b1:number , b2:number){ // returns if x is between b1 and b2  (inclusive:number)
     noNaN(arguments as any);

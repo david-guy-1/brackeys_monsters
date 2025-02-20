@@ -75,7 +75,7 @@ function App() {
   events["click a"] = [click_fn, null]
   events["keydown a"] = [keydown, null];
   if(mode == "menu"){
-      return <button onClick={() => {setG(new game()); setMode("potions");} }>Click to start</button>;
+      return <button onClick={() => {setG(new game()); setMode("chase");} }>Click to start</button>;
     }else if (mode == "chase"){
       // set up game 
       g?.setup_chase(2000, 2000)

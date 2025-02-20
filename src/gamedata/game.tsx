@@ -1,22 +1,45 @@
 import _, { flatten } from "lodash";
 import { game_interface, point } from "../interfaces";
-import { angle_between, bfs, dist, doLinesIntersect, dot, getIntersection, len, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointInsidePolygon, pointInsideRectangleWH, pointToCoefficients, rescale, vector_angle } from "../lines";
+import { angle_between, bfs, dist, doLinesIntersect, dot, getIntersection, len, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointClosestToSegment, pointInsidePolygon, pointInsideRectangleWH, pointToCoefficients, rescale, vector_angle } from "../lines";
 import { rotate_command, scale_command } from "../rotation";
 
-class monster { 
+export function get_image(m : monster){
+    return "monster"; 
+}
+
+export class monster { 
     position : point;
     name : string
     age : number = 0;
+    active : boolean = true; 
+    lasering : undefined | {"type" : "threat" , time : number, direction : number, range : number, active_time : number} | {"type" : "active", time : number,direction : number, range : number}; 
+    attrib : Record<string, any> = {}; 
     constructor(position : point, name : string = ""){
         this.position = position; 
         this.name = name;
     }
     tick(g : game){
         this.age++;
+        // handle lasers
+        if(this.lasering != undefined){
+            if(this.lasering.type == "threat"){
+                this.lasering.time--;
+                if(this.lasering.time == 0){
+                    this.lasering = {type:"active", time : this.lasering.active_time, direction:this.lasering.direction, range:this.lasering.range};
+                } 
+            }else if (this.lasering.type == "active"){
+                
+                this.lasering.time--;
+                if(this.lasering.time == 0){
+                    this.lasering = undefined;
+                }
+            }
+        }
     }
 }
 
-class seeing_monster extends monster{
+
+export class seeing_monster extends monster{
     direction:number;
     vision_range:number;
     vision_arc:number;
@@ -30,7 +53,7 @@ class seeing_monster extends monster{
         this.name = name
     }
     tick(g : game){
-        this.age++
+        super.tick(g); 
         // move this 
         g.move_wall(this.position, lincomb(1, this.position, 1, [Math.cos(this.direction), Math.sin(this.direction)]) as point)
         //turn this
@@ -41,7 +64,7 @@ class seeing_monster extends monster{
         this.direction += this.vision_velocity;
     }
 }
-class roaming_monster extends monster {
+export class roaming_monster extends monster {
     target:point;
     w:number;
     h:number;
@@ -58,14 +81,14 @@ class roaming_monster extends monster {
 
     }
     tick(g : game){
-        this.age++
+        super.tick(g); 
         g.move_wall(this.position, this.target, this.speed);
         if(dist(this.position, this.target) < 1){
             this.target = [Math.random() * this.w , Math.random() * this.h]; 
         }
     }
 }
-class targeted_monster extends monster{
+export class targeted_monster extends monster{
     target:point;
     speed:number;
     name : string = ""
@@ -77,7 +100,7 @@ class targeted_monster extends monster{
         this.name = name
     }
     tick(g : game){
-        this.age++
+        super.tick(g); 
         g.move_wall(this.position, this.target, this.speed);
     }
 }
@@ -144,9 +167,6 @@ class game implements game_interface{
 
     //monsters
     monsters : monster[] = [];
-    seeing_monsters : seeing_monster[] = []; 
-    roaming_monsters : roaming_monster[] = []; 
-    targeted_monsters : targeted_monster[] = [];
 
     swing : undefined | swing_type = undefined
     // common stuff
@@ -179,9 +199,6 @@ class game implements game_interface{
     constructor(){} ; // no constructor 
     clear(){
         this.monsters = []; 
-        this.seeing_monsters = [];
-        this.roaming_monsters = [];
-        this.targeted_monsters = []; 
         this.trees = [];
         this.repel_spells = [];
         this.fireball_spells = [];
@@ -226,7 +243,7 @@ class game implements game_interface{
         this.target = [w/2, h/2];
         for(let i=0; i<30; i++){
             //add a monster
-            this.seeing_monsters.push(new seeing_monster([Math.random() * w, Math.random() * h], Math.random() * 2 * Math.PI, 300, 0.5 + Math.random() * 0.3));
+            this.monsters.push(new seeing_monster([Math.random() * w, Math.random() * h], Math.random() * 2 * Math.PI, 300, 0.5 + Math.random() * 0.3));
         }
         for(let i=0; i<130; i++){
             //add a tree
@@ -257,7 +274,7 @@ class game implements game_interface{
         this.escort_pos = [...escort_points[0]]; 
         for(let i=0; i<30; i++){
             //add a monster
-            this.roaming_monsters.push(new roaming_monster([Math.random(),Math.random()], [Math.random(), Math.random()], w, h , 4));
+            this.monsters.push(new roaming_monster([Math.random(),Math.random()], [Math.random(), Math.random()], w, h , 4));
         }
         for(let i=0; i<130; i++){
             //add a tree
@@ -282,7 +299,7 @@ class game implements game_interface{
         //monsters
         for(let i=0; i<100; i++){
             let spawn = [Math.random() * w, Math.random() * h];
-            this.targeted_monsters.push(new targeted_monster([...spawn] as point, [...spawn] as point, 3 + 4 * Math.random())); 
+            this.monsters.push(new targeted_monster([...spawn] as point, [...spawn] as point, 3 + 4 * Math.random())); 
         }
     }
 
@@ -418,13 +435,12 @@ class game implements game_interface{
         if("chase stealth repel escort collect".split(" ").indexOf(this.mode) != -1){
             this.move_wall(this.player, this.target,15) ; 
             this.player = moveIntoRectangleWH(this.player, [0,0], this.dims) as point;   
-            this.seeing_monsters.forEach(x => x.tick(this));
-            this.roaming_monsters.forEach(x => x.tick(this));
-            this.targeted_monsters.forEach(x => x.tick(this));
+            this.get_monsters().forEach(x => x.tick(this));
             this.handle_repel();
             this.handle_fireball();
             this.handle_swing();
             this.handle_collect();
+            this.handle_lasers();
             this.clear_deleted_monsters();
         }
         if(this.mode == "chase"){
@@ -450,13 +466,17 @@ class game implements game_interface{
     tick_chase(){
         for(let i=0; i<this.monsters.length; i++){
             let monster = this.monsters[i];
-            if(dist(monster.position, this.player) < 600){
+            if(dist(monster.position, this.player) < 200){
                 // pursue the player
                 this.move_wall(monster.position, this.player, 4); 
             } else {
                 this.move_wall(monster.position, lincomb(1, monster.position, 7, [Math.random() - 0.5,Math.random() - 0.5]) as point);  
             }
             this.monsters[i].position = moveIntoRectangleWH(this.monsters[i].position, [0,0], this.dims) as point; 
+            // randomly laser
+            if(Math.random() < 0.001){
+                monster.lasering = {"type":"threat", "direction" : Math.random() * 2 * Math.PI, "range" : 1000, "time" : 50, "active_time" : 30};
+            }
         } 
         return [];
     }
@@ -511,8 +531,8 @@ class game implements game_interface{
             return closest;
         }.bind(this);
 
-        for(let monster of this.targeted_monsters){
-            if(dist(monster.position, monster.target) < 4){
+        for(let monster of this.monsters){
+            if(monster instanceof targeted_monster &&  dist(monster.position, monster.target) < 4){
                 let coin = get_nearest_coin(monster.position)
                 if(coin != -1){
                     monster.target = lincomb(1, this.coin_points[coin], 280, [Math.random() -0.5,Math.random() -0.5]) as point;
@@ -540,8 +560,8 @@ class game implements game_interface{
     }
     seeing_monster_see_player(firstone : boolean = false) : number[]{ // indices of monsters that see the player
         let seen = [];
-        for(let [i, monster] of this.seeing_monsters.entries()){
-            if(dist(this.player, monster.position) < monster.vision_range && (dist(this.player, monster.position) == 0 || vector_angle(lincomb(1, this.player, -1, monster.position) as point, [Math.cos(monster.direction), Math.sin(monster.direction)]) <= monster.vision_arc)){
+        for(let [i, monster] of this.monsters.entries()){
+            if(monster instanceof seeing_monster && dist(this.player, monster.position) < monster.vision_range && (dist(this.player, monster.position) == 0 || vector_angle(lincomb(1, this.player, -1, monster.position) as point, [Math.cos(monster.direction), Math.sin(monster.direction)]) <= monster.vision_arc)){
                 seen.push(i);
                 if(firstone){
                     return seen; 
@@ -551,17 +571,17 @@ class game implements game_interface{
         return seen; 
     }
     get_monsters(){
-        return this.monsters.concat(this.seeing_monsters).concat(this.roaming_monsters).concat(this.targeted_monsters);
+        return this.monsters;
     }
     attack_monster(monster : monster, type : "fireball" | "swing"){
-        monster.name += " deleted";
+        monster.active = false;
     }
     handle_repel(){
         // repel monsters
         for(let item of this.repel_spells){
             item.position = lincomb(1, item.position, 1, item.velocity) as point; 
             item.tick();
-            for(let item2 of this.monsters.concat(this.seeing_monsters).concat(this.roaming_monsters).concat(this.targeted_monsters)){
+            for(let item2 of this.monsters.concat(this.monsters).concat(this.monsters).concat(this.monsters)){
                 if(dist(item.position, item2.position) < item.width){
                     this.move_wall(item2.position, repel_monster(item2.position, item));
                 }
@@ -614,6 +634,17 @@ class game implements game_interface{
             }
         }
     }
+    handle_lasers(){
+        for(let monster of this.get_monsters()){
+            if(monster.lasering && monster.lasering.type == "active"){
+                let dist = pointClosestToSegment(this.player, monster.position, lincomb(1, monster.position, monster.lasering.range, [Math.cos(monster.lasering.direction), Math.sin(monster.lasering.direction)]))[2];
+                console.log(dist)
+                if(dist < 7){
+                    console.log("lasered");
+                }
+            }
+        }
+    }
 
     //for maze stuff
     is_tree(x : number, y : number){
@@ -633,9 +664,9 @@ class game implements game_interface{
 
     // looks for "deleted" in name
     clear_deleted_monsters(){
-        for(let lst of [this.monsters, this.seeing_monsters, this.roaming_monsters, this.targeted_monsters]){
+        for(let lst of [this.monsters, this.monsters, this.monsters, this.monsters]){
             for(let i=lst.length-1; i>= 0; i--){
-                if(lst[i].name.indexOf("deleted") != -1){
+                if(lst[i].active == false){
                     lst.splice(i,1);
                 }
             }
