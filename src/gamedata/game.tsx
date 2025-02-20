@@ -135,7 +135,7 @@ type swing_type = {"angle" : number, "velocity" : number, size : number, "lifesp
 class game implements game_interface{
     //fundamentals 
     dims : point = [0,0]; // width, height
-    mode : "chase" | "move" | "stealth" | "repel" | "escort" | "collect" | "maze" = "chase"; 
+    mode : "chase" | "move" | "stealth" | "repel" | "escort" | "collect" | "maze" | "potions"= "chase"; 
     time : number = 0;
 
     // player movement
@@ -171,6 +171,11 @@ class game implements game_interface{
     maze_chops : number = 0; 
     maze_chops_init : number = 0;
 
+    // potions stuff
+    rules : {type : "first" | "before"  | "last" , x : string, y : string | number}[] = [];
+    potions : string[] = [];
+    already_put : string[] = [];
+
     constructor(){} ; // no constructor 
     clear(){
         this.monsters = []; 
@@ -187,6 +192,9 @@ class game implements game_interface{
         this.coin_points = [];
         this.collected = []; 
         this.maze_points = []; 
+        this.potions = []
+        this.rules = [];
+        this.already_put = []; 
     }
     setup_chase(w : number, h : number){
         this.clear()
@@ -317,6 +325,86 @@ class game implements game_interface{
         this.maze_chops_init = this.maze_chops;
 
     }
+    setup_potions(num_potions : number){
+        this.clear()
+        this.mode = "potions";
+        // make potions
+        if(num_potions <= 1){
+            throw "need at least 2 potions"; 
+        }
+        let potions = [];
+        for(let i=0; i < num_potions; i++){
+            potions.push(`hsl(${Math.random() * 360}, 75%, 80% )`)
+        }
+        this.potions =  _.shuffle(potions).map(x => x.toString()); // correct value 
+        console.log(potions);
+
+        // generate rules to constrain potions
+        while(this.rules.length < 12){
+            let choice :  "first" | "before"  | "last"  = _.sample(["first", "before", "last",]); 
+            // choose a potion to constrain 
+            let index = Math.floor(Math.random() * num_potions)
+            let constrained_potion = this.potions[index];
+            if(choice == "first"){
+                this.rules.push({type:"first", x : constrained_potion, y : Math.min(num_potions, Math.ceil(index * (1.2 + Math.random() * 0.3)))}); 
+            }
+            if(choice == "last" && index != 0){
+                this.rules.push({type:"last", x : constrained_potion, y : Math.max(1, Math.floor(index * (0.8 - Math.random() * 0.2)))}); 
+            }
+            if(choice == "before"){
+                let index2 = -1
+                while(index2 == -1 || index == index2){
+                    index2 = Math.floor(Math.random() * num_potions);
+                }
+
+                this.rules.push({type:"before", x : constrained_potion, y : this.potions[index2]}); 
+            }
+        }
+        this.already_put = this.potions;
+        if(!this.check_potions()){
+            throw "failure to generate";
+        }
+        this.already_put = [];
+    }
+
+    add_potion(s : string){
+        if(this.potions.indexOf(s) != -1 && this.already_put.indexOf(s) == -1){
+            this.already_put.push(s);
+        }
+    }
+    check_potions(){
+        // first : strict inequality, last : non-strict inequality 
+        let output : boolean[] = []; 
+        for(let item of this.rules){
+            let potion = item.x;
+            let actual_index = this.already_put.indexOf(potion);
+            if(item.type == "first"){
+                let rule_index = item.y; 
+                if(typeof rule_index == "string"){
+                    throw "rule of type first with string "
+                }
+                output.push(actual_index != -1 && actual_index < rule_index)
+            }
+            else if(item.type == "last"){
+                let rule_index = item.y; 
+                if(typeof rule_index == "string"){
+                    throw "rule of type last with string "
+                }
+                output.push(actual_index != -1 && actual_index >= rule_index)
+            }
+            else if (item.type == "before"){
+                let other_index = this.already_put.indexOf(item.y.toString());
+                output.push(actual_index != -1 && other_index != -1 && actual_index < other_index)
+            }
+        }
+        return output; 
+    }
+    remove_last_potion(){
+        if(this.already_put.length > 0){
+            this.already_put.pop(); 
+        }
+    }
+
     move_player_disc(input : point){
         if(this.mode == "move"){
             this.player = lincomb(1, this.player, 1, input) as point;

@@ -8,21 +8,37 @@ import { data_obj as repel_obj } from './repel_gameData';
 import { data_obj as escort_obj } from './escort_gameData';
 import { data_obj as collect_obj } from './collect_gameData';
 import { data_obj as maze_obj } from './maze_gameData';
+import { data_obj as potions_obj } from './potions_gameData';
 import { events } from '../EventManager';
 import GameDisplay, { clone_gamedata } from '../GameDisplay';
-import { dist, lincomb, moveIntoRectangleBR, normalize } from '../lines';
-import { canvas_size, mouse_radius, player_box } from './constants';
+import { between, cell_index, dist, lincomb, moveIntoRectangleBR, normalize } from '../lines';
+import { canvas_size, cauldron_pos, mouse_radius, player_box, potion_size, potion_start, potions_per_row } from './constants';
 import  Test_canvas  from '../test_canvas';
 import { gamedata } from '../interfaces';
 
 function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
-  if(g.mode == "chase" || g.mode == "stealth" || g.mode == "escort" || g.mode == "collect"){
+  if(g.mode == "chase" || g.mode == "stealth" || g.mode == "escort" || g.mode == "collect" || g.mode == "potions"){
     if((e.target as HTMLElement).getAttribute("data-key")?.indexOf("main_canvas") != -1){ // topmost canvas element that is valid
       store.mouse_pos = [e.offsetX, e.offsetY];// set mouse position 
     }
   }
-}
+  if(g.mode == "potions"){
 
+  }
+}
+function click_fn(e : MouseEvent, g : game, store : globalStore_type ){
+  if(g.mode == "potions"){
+    // clicked on a potion
+    let start_coord = lincomb(1, potion_start, -0.5, [potion_size,potion_size]) as point;
+    let index = cell_index(start_coord, potion_size, potion_size, potions_per_row, e.offsetX, e.offsetY);
+    if(index != undefined){
+      let potion = g.potions[index[2]];
+      if(g.already_put.indexOf(potion) == -1){
+        store.potion_anim_state = {color : g.potions[index[2]], "place" : [cauldron_pos[0]+150, 100]}
+      }
+    }
+  }
+}
 
 function keydown(e : KeyboardEvent, g : game, store : globalStore_type ){
   let direction_vector : point = lincomb(1, store.mouse_pos, -1, store.player_pos) as point;  
@@ -56,9 +72,10 @@ function App() {
   let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0]}; 
   let data : gamedata = clone_gamedata(chase_obj);
   events["mousemove a"] = [move_canvas, null]
+  events["click a"] = [click_fn, null]
   events["keydown a"] = [keydown, null];
   if(mode == "menu"){
-      return <button onClick={() => {setG(new game()); setMode("maze");} }>Click to start</button>;
+      return <button onClick={() => {setG(new game()); setMode("potions");} }>Click to start</button>;
     }else if (mode == "chase"){
       // set up game 
       g?.setup_chase(2000, 2000)
@@ -103,6 +120,13 @@ function App() {
   } else if (mode == "maze"){
     g?.setup_maze(18,15);
     data = clone_gamedata(maze_obj); 
+    data.g = g;
+    data.prop_fns["new_game"] =  () => transition("potions");
+      
+  }else if (mode == "potions"){
+    g?.setup_potions(18);
+    
+    data = clone_gamedata(potions_obj); 
     data.g = g;
     data.prop_fns["new_game"] =  () => transition("chase");
       
