@@ -61,7 +61,6 @@ export class monster {
     lasering ?: {"type" : "threat" , time : number, direction : number, range : number, active_time : number} | {"type" : "active", time : number,direction : number, range : number}; 
     vision ?: {vision_range:number
         vision_arc:number
-        vision_velocity : number
     direction : number}
 
     attrib : Record<string, any> = {}; 
@@ -414,8 +413,8 @@ class game implements game_interface{
         if(this.move_flag){
             this.move_wall(this.player, this.target,15) ; 
             this.player = moveIntoRectangleWH(this.player, [0,0], this.dims) as point;   
-            this.get_monsters().forEach(x => x.tick(this));
-            this.fairies.forEach(x => x.tick(this));
+            this.get_monsters().forEach(x => {x.tick(this); x.position = moveIntoRectangleWH(x.position, [0,0], this.dims) as point});
+            this.fairies.forEach(x => {x.tick(this); x.position = moveIntoRectangleWH(x.position, [0,0], this.dims) as point});
             this.handle_spells();
             this.handle_swing();
             this.handle_collect();
