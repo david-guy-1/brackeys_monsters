@@ -76,9 +76,7 @@ export class monster {
     }
     tick(g : game){
         this.age++;
-        if(this.attrib.tick != undefined){
-            this.attrib.tick(g);
-        }
+        this.tick_fn(g);
         // handle lasers
         if(this.lasering != undefined){
             if(this.lasering.type == "threat"){
@@ -508,7 +506,6 @@ class game implements game_interface{
             }
             this.swing.angle += this.swing.velocity;
             this.swing.lifespan--;
-            console.log(this.swing.lifespan);
             if(this.swing.lifespan <= 0){
                 this.swing = undefined;
             }

@@ -13,7 +13,7 @@ import { gamedata } from '../interfaces';
 import MainMap from './MainMap';
 import { loadImage } from '../canvasDrawing';
 import Town from './Town';
-import { vision, wanderer } from './monster_patterns';
+import { pursue, vision, wanderer } from './monster_patterns';
 
 // mousemove
 function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
@@ -103,9 +103,9 @@ function App() {
         let choice = "fetch maze escape potions defend escort kill fairy assassin"
         g?.setup_chase(2000, 2000);
         for(let i=0; i< 15; i++){
-          wanderer(g, Math.random() * 1, Math.random() * 1, Math.random() * 5 + 1); 
+          pursue(g, Math.random() * 1, Math.random() * 1, Math.random() * 5 + 1); 
         }
-        for(let i=0; i< 15; i++){
+        for(let i=0; i< 1; i++){
           vision(g, Math.random() * 1, Math.random() * 1, Math.random() * 5 + 1, 100, 0.4); 
         }
         for(let i=0; i<100; i++){
