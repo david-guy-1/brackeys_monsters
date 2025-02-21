@@ -10,3 +10,4 @@ export let potion_start : point = [350, 50]
 export let potion_size : number = 40; 
 export let potions_per_row : number =5;
 export let cauldron_pos : point =[10, 400];
+export let min_town_dist = 70;

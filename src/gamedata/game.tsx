@@ -4,7 +4,12 @@ import { angle_between, bfs, dist, doLinesIntersect, dot, getIntersection, len, 
 import { rotate_command, scale_command } from "../rotation";
 import { d_image } from "../canvasDrawing";
 import { dag } from "../dag";
-import { canvas_size } from "./constants";
+import { canvas_size, min_town_dist } from "./constants";
+
+
+type attack_type =  repel_spell | fireball_spell | "swing"
+
+
 
 // attribs have "this" = the monster, and take values  (game : game, type :attack_type) 
 // special ones are "see_player", "touch_player" and "hit"; 
@@ -18,29 +23,31 @@ export class fairy {
     age : number = 0
     attrib : Record<string, any> = {};
     active : boolean = true;
-    constructor(position : point,name : string){
+    should_check : (g : game, type : attack_type | monster) => boolean;
+    hit : (g : game, type : attack_type) => void; // hit by player attack
+    touch_player : (g : game) => void; //touched player
+    tick_fn : (g : game) => void
+    monster_touch :(g : game, m : monster) => void;  // touched monster
+    constructor(position : point,name : string, should_check :(g : game, type : attack_type | monster) => boolean , hit : (g : game) => void, touch_player : (g : game) => void,tick_fn : (g : game) => void,monster_touch :(g : game, m : monster) => void){
         this.position=position;
         this.name=name;
+        this.hit = hit;
+        this.touch_player = touch_player;
+        this.tick_fn = tick_fn;
+        this.should_check = should_check;
+        this.monster_touch = monster_touch;
     }
     tick(g : game){
         this.age++;
-        if(this.attrib.tick != undefined){
-            this.attrib.tick(g);
-        }
-    }
-    check(g : game, item : monster  | "swing" | fireball_spell | repel_spell){
-        console.log("fairy hit!");
-        if(this.attrib.hit != undefined){
-            this.attrib.hit(g, item)
-        }
+        this.tick_fn(g);
     }
 }
 // default for all attacks 
 function default_hit(item2 : monster, g : game, item :attack_type){
     if(item instanceof repel_spell){
         g.move_wall(item2.position, repel_monster(item2.position, item));
-        if(item2 instanceof seeing_monster){
-            item2.direction = Math.atan2(item.velocity[1], item.velocity[0]);
+        if(item2.vision != undefined){
+            item2.vision.direction = Math.atan2(item.velocity[1], item.velocity[0]);
         }
     } else {
         item2.active = false;
@@ -52,12 +59,28 @@ export class monster {
     name : string
     age : number = 0;
     active : boolean = true; 
-    lasering : undefined | {"type" : "threat" , time : number, direction : number, range : number, active_time : number} | {"type" : "active", time : number,direction : number, range : number}; 
-    attrib : Record<string, any> = {"hit" : (game : game, type :attack_type) => default_hit(this, game, type)}; 
-    constructor(position : point, name : string = ""){
+    
+    see_player : (g : game) => void;
+    should_check : (g : game) => boolean;
+    hit : (g : game, type : attack_type) => void; // hit by player attack
+    touch_player : (g : game, laser : boolean) => void; // monster touched player
+    tick_fn : (g : game) => void
+
+    lasering ?: {"type" : "threat" , time : number, direction : number, range : number, active_time : number} | {"type" : "active", time : number,direction : number, range : number}; 
+    vision ?: {vision_range:number
+        vision_arc:number
+        vision_velocity : number
+    direction : number}
+
+    attrib : Record<string, any> = {}; 
+    constructor(position : point, name : string = "",see_player : (g : game) => void, should_check :(g : game) => boolean , hit : (g : game, type : attack_type) => void, touch_player : (g : game , laser: boolean) => void,tick_fn : (g : game) => void){
         this.position = position; 
         this.name = name;
-        // default repel ability
+        this.see_player = see_player;
+        this.hit = hit;
+        this.touch_player = touch_player;
+        this.tick_fn = tick_fn;
+        this.should_check = should_check;
 
     }
     tick(g : game){
@@ -84,71 +107,6 @@ export class monster {
 }
 
 
-export class seeing_monster extends monster{
-    direction:number;
-    vision_range:number;
-    vision_arc:number;
-    vision_velocity : number = 0; 
-    name : string = ""
-    constructor(position : point,direction : number,vision_range : number,vision_arc : number, name : string = ""){
-        super(position,name);
-        this.direction=direction;
-        this.vision_range=vision_range;
-        this.vision_arc=vision_arc;
-        this.name = name
-    }
-    tick(g : game){
-        super.tick(g); 
-        // move this 
-        g.move_wall(this.position, lincomb(1, this.position, 1, [Math.cos(this.direction), Math.sin(this.direction)]) as point)
-        //turn this
-        this.vision_velocity += (Math.random() - 0.5) * 0.1;
-        if(Math.abs(this.vision_velocity) > 0.04){
-            this.vision_velocity = 0;
-        }
-        this.direction += this.vision_velocity;
-    }
-}
-export class roaming_monster extends monster {
-    target:point;
-    w:number;
-    h:number;
-    speed:number;
-    name : string = ""
-    constructor(position : point,target : point,w : number,h : number,speed : number, name : string = ""){
-        super(position,name);
-        this.position=position;
-        this.target=target;
-        this.w=w;
-        this.h=h;
-        this.speed=speed;
-        this.name = name
-
-    }
-    tick(g : game){
-        super.tick(g); 
-        g.move_wall(this.position, this.target, this.speed);
-        if(dist(this.position, this.target) < 1){
-            this.target = [Math.random() * this.w , Math.random() * this.h]; 
-        }
-    }
-}
-export class targeted_monster extends monster{
-    target:point;
-    speed:number;
-    name : string = ""
-    constructor(position : point,target : point,speed : number, name : string = ""){
-        super(position,name);
-        this.position=position;
-        this.target=target;
-        this.speed=speed;
-        this.name = name
-    }
-    tick(g : game){
-        super.tick(g); 
-        g.move_wall(this.position, this.target, this.speed);
-    }
-}
 
 let canonical_repel : draw_command = {"type":"drawBezierShape","x":0,"y":-50.00000000000001,"curves":[[4,-39.10256410256411,6,-26.923076923076927,3,-11.53846153846154],[5,-3.8461538461538467,8,-1.2820512820512822,11,0],[8,1.2820512820512822,5,3.8461538461538467,3,11.53846153846154],[6,26.923076923076927,4,39.10256410256411,0,50.00000000000001],[20,39.10256410256411,30,26.923076923076927,15,11.53846153846154],[25,3.8461538461538467,24,1.2820512820512822,22,0],[24,-1.2820512820512822,25,-3.8461538461538467,15,-11.53846153846154],[30,-26.923076923076927,20,-39.10256410256411,0,-50.00000000000001]],"color":{"type":"fill_linear","x0":0,"y0":0,"x1":11,"y1":0,"colorstops":[[0,"#ffffff"],[0.9,"#ccccff"],[1,"#bbbbff"]]}}
 
@@ -206,6 +164,7 @@ class game implements game_interface{
     time : number = 0;
     move_flag = true; // if the mode is one where the player moves around 
     monsters_killed : number = 0; 
+    seed : string;
     // player movement
     player : point = [400,400];
     target : point = [400, 400];
@@ -249,12 +208,12 @@ class game implements game_interface{
     towns : Record<string, Set<string>>; 
     collected_dag : Set<string> = new Set();
     town_locations : Record<string, point>; 
-
+    sort : string[];
     // tick stuff - returns if the player has won or lost
     tick_fn ?: (g : game) => "victory" | "defeat" | undefined; 
 
-    constructor(){
-        let n_vertices = 30; 
+    constructor(seed : string, n_vertices : number){
+        this.seed = seed;  
         this.graph = new dag(_.range(n_vertices).map(x => x.toString()), []);  
         for(let i=0; i<n_vertices; i++){
             try {
@@ -283,13 +242,14 @@ class game implements game_interface{
         for(let item of Object.keys(this.towns)){
             while(true){
                 let next_point : point = [Math.random() * canvas_size[0], Math.random() * canvas_size[1]];
-                if(_.some(Object.values(this.town_locations).map(x => dist(x, next_point) < 100))){
+                if(_.some(Object.values(this.town_locations).map(x => dist(x, next_point) < min_town_dist))){
                 } else {
                     this.town_locations[item] = next_point;
                     break; 
                 }
             }
         }
+        this.sort =  this.graph.toposort()
         console.log([this.towns, this.town_locations]);
     } ; 
     clear(){
@@ -320,14 +280,6 @@ class game implements game_interface{
         this.move_flag = true;
         this.player = [w/2, h/2];
         this.target = [w/2, h/2];
-        for(let i=0; i<30; i++){
-            //add a monster
-            this.monsters.push(new monster([Math.random() * w, Math.random() * h]));
-        }
-        for(let i=0; i<130; i++){
-            //add a tree
-            this.trees.push([Math.random() * w, Math.random() * h]);
-        }
 
         this.dims = [w,h]; 
     }
@@ -473,6 +425,7 @@ class game implements game_interface{
             this.handle_collect();
             this.handle_lasers();
             this.handle_seeing_monsters();
+            this.handle_monster_touch_player();
             this.handle_escort();
             this.clear_deleted_monsters();
             this.handle_fairy_touch();
@@ -499,9 +452,9 @@ class game implements game_interface{
         let start_angle = angle - velocity * lifespan/2; 
         this.swing = {"angle" : start_angle, "velocity" : velocity, "lifespan" : lifespan, "size" : size}
     }
-    seeing_monster_see_player(monster : seeing_monster, firstone : boolean = false) : monster[]{ //monsters that see the player
-        let seen : seeing_monster[] = [];
-        if( dist(this.player, monster.position) < monster.vision_range && (dist(this.player, monster.position) == 0 || vector_angle(lincomb(1, this.player, -1, monster.position) as point, [Math.cos(monster.direction), Math.sin(monster.direction)]) <= monster.vision_arc)){
+    seeing_monster_see_player(monster : monster, firstone : boolean = false) : monster[]{ //monsters that see the player
+        let seen : monster[] = [];
+        if( monster.vision && dist(this.player, monster.position) < monster.vision.vision_range && (dist(this.player, monster.position) == 0 || vector_angle(lincomb(1, this.player, -1, monster.position) as point, [Math.cos(monster.vision.direction), Math.sin(monster.vision.direction)]) <= monster.vision.vision_arc)){
             seen.push(monster);
             if(firstone){
                 return seen; 
@@ -583,7 +536,7 @@ class game implements game_interface{
     handle_seeing_monsters(){
         let seen = false; 
         for(let monster of this.monsters){
-            if(monster instanceof seeing_monster){
+            if(monster.vision){
                 this.seeing_monster_see_player(monster);
                 seen = true;                 
             }
@@ -623,35 +576,49 @@ class game implements game_interface{
             if(monster.lasering && monster.lasering.type == "active"){
                 let dist = pointClosestToSegment(this.player, monster.position, lincomb(1, monster.position, monster.lasering.range, [Math.cos(monster.lasering.direction), Math.sin(monster.lasering.direction)]))[2];
                 if(dist < 7){
-                    console.log("lasered");
+                    monster.touch_player(this ,true);
                 }
             }
         }
     }
     handle_fairy_touch(){
         for(let fairy of this.fairies){
+            //check monsters
             for(let monster of this.monsters){
-                if(dist(monster.position, fairy.position) < 20){
-                    fairy.check(this,monster);
+                if(fairy.should_check(this, monster)){
+                    if(dist(monster.position, fairy.position) < 20){
+                        fairy.monster_touch(this,monster);
+                    }
                 }
             }
-            for(let item of this.repel_spells){
-                if(dist(item.position, fairy.position) < item.width){
-                    fairy.check(this,item);
-                }
-            }
-            for(let item of this.fireball_spells){
-                if(dist(item.position, fairy.position) < item.width){
-                    fairy.check(this,item);
-                }
-            }
+            //check player attacks
+            let check_lst : attack_type[]=  this.repel_spells.concat(this.fireball_spells);
             if(this.swing_gets_point(fairy.position)){
-                fairy.check(this,"swing")
+                check_lst.push("swing");
+            }
+            for(let item of check_lst){
+                if(fairy.should_check(this, item)){
+                    if(item == "swing" || dist(item.position, fairy.position) < 20){
+                        fairy.hit(this,item);
+                    }
+                }
+            }
+            //check player
+            if(dist(fairy.position, this.player) < 20){
+                fairy.touch_player(this);
             }
         }
     }
 
-
+    handle_monster_touch_player(){
+        for(let monster of this.monsters){
+            if(monster.should_check(this)){
+                if(dist(monster.position, this.player) < 20){
+                    monster.touch_player(this,false);
+                }
+            }
+        }
+    }
     //for maze stuff
     is_tree(x : number, y : number){
         let tree = this.maze_points[x][y];

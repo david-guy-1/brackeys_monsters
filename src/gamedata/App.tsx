@@ -12,6 +12,7 @@ import  Test_canvas  from '../test_canvas';
 import { gamedata } from '../interfaces';
 import MainMap from './MainMap';
 import { loadImage } from '../canvasDrawing';
+import Town from './Town';
 
 // mousemove
 function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
@@ -63,7 +64,7 @@ function App() {
   }
   // default store, override it if necessary 
   let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0]}; 
-  let data : gamedata = clone_gamedata(chase_obj);
+  const [data, setGameData] = useState<gamedata>(clone_gamedata(chase_obj));
   events["mousemove a"] = [move_canvas, null]
   events["click a"] = [click_fn, null]
   events["keydown a"] = [keydown, null];
@@ -72,39 +73,52 @@ function App() {
 
       let promises = Promise.allSettled(image_files.map(x => loadImage("images/" + x)))
     
-      return <button onClick={() => {promises.then(() =>{ setG(new game()); setMode("potions");})}}>Click to start</button>;
+      return <button onClick={() => {promises.then(() =>{ setG(new game("a", 30)); setMode("map");})}}>Click to start</button>;
   }
   else if (mode == "map"){
     if(g){
       return <MainMap g={g} recall={(s : exp_modes) => transition(s)}/>
+    } else {
+      return <>no game here</>;
+    }
+  }
+  else if (mode[0] == "town"){
+    if(g == undefined){
+      setMode("menu");
+    } else {
+      return <Town g={g} town={mode[1]} recall={(data : any) => setMode(["prepare", data])} />; 
     }
   }  
-  else if (mode == "chase"){
-      // set up game 
-      g?.setup_chase(2000, 2000)
-      data = clone_gamedata(chase_obj); 
-      data.g = g;
+  else if (mode[0] == "prepare"){
+    if(g == undefined){
+      setMode("menu");
+    } else { 
+      if(mode[1] == "back"){
+        setMode("map");
+      } else { 
+        let town = mode[1];
+        let sort_index = g?.sort.indexOf(town);
+        let choice = "fetch maze escape potions defend escort kill fairy assassin"
+        
+        g?.setup_chase(2000, 2000)
+        let data = clone_gamedata(chase_obj); 
+        data.g = g;
+        g.tick_fn = () => {return undefined};
+        setGameData(data);
+        setMode("game");
+      }
+    }
+  }
+  else if (mode == "game"){
+      // set up game
       data.prop_fns["victory"] =  () => transition("map");
       data.prop_fns["defeat"] =  () => transition("map");
+      return <GameDisplay data={data} globalStore={store}/>
       // register event listener;
-  } else if (mode == "maze"){
-    g?.setup_maze(18,15);
-    data = clone_gamedata(maze_obj); 
-    data.g = g;
-    data.prop_fns["new_game"] =  () => transition("map");
-      
-  }else if (mode == "potions"){
-    g?.setup_potions(18);
-    
-    data = clone_gamedata(potions_obj); 
-    data.g = g;
-    data.prop_fns["new_game"] =  () => transition("map");
-      
-  }
-  else if (mode == "test"){
+  }else if (mode == "test"){
     return <Test_canvas />;
   }
-  return <GameDisplay data={data} globalStore={store} />  
+  return "none of the modes match - " + mode;  
 
 }
 
