@@ -5,18 +5,18 @@ import { dist } from "../lines";
 import { draw } from "../process_draws";
 import { d_image } from "../canvasDrawing";
 
-function handleClick(e : MouseEvent,g : game, recall : (s : string)=> void){
+function handleClick(e : MouseEvent,g : game, recall : (s : exp_modes)=> void){
     console.log([e.offsetX, e.offsetY]);
     for(let town of Object.keys(g.town_locations)){
         let loc = g.town_locations[town];
-        if(dist([e.offsetX, e.offsetY], loc) < 20){
-            recall(town);
+        if(dist([e.offsetX, e.offsetY], loc) < 50){
+            recall("chase");
             break;
         }
     }
 }
 
-function MainMap({g,recall} : {g : game ,recall : (s : string) => void} ){
+function MainMap({g,recall} : {g : game ,recall : (s : exp_modes) => void} ){
     let x = useRef<HTMLCanvasElement>(null); 
     useEffect(function(){
         let lst : draw_command[] = []; 

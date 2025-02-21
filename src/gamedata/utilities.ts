@@ -95,6 +95,16 @@ export function draw_walls(g : game){
     return output;
 }
 
+export function draw_fairies(g : game){ 
+    let output : draw_command[] = [];
+    for(let fairy of g.fairies){
+        if(fairy.active){
+            output.push(d_image("images/fairy.png", fairy.position));
+        }
+    }
+    return output;
+}
+
 export function draw_lasers(g : game){
     let output : draw_command[] = [];
     for(let monster of g.get_monsters()){

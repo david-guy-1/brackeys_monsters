@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import game, { repel_spell } from './game';
+import game, {  repel_spell } from './game';
 
 import { data_obj as chase_obj  } from './chase_gameData';
 import { data_obj as move_obj } from './move_gameData';
@@ -59,13 +59,11 @@ function keydown(e : KeyboardEvent, g : game, store : globalStore_type ){
   }
 }
 
-
-
 function App() {
   const [g, setG] = useState<game | undefined>(undefined);
-  const [mode, setMode] = useState<string>("menu");
+  const [mode, setMode] = useState<exp_modes >("menu");
   const [transitioning, setTransitioning] = useState<boolean>(false);
-  function transition(s : string){
+  function transition(s : exp_modes){
     setTransitioning(true);
     setTimeout(() => {setMode(s); setTransitioning(false)}, 0);
   }
@@ -83,11 +81,11 @@ function App() {
 
       let promises = Promise.allSettled(image_files.map(x => loadImage("images/" + x)))
     
-      return <button onClick={() => {promises.then(() =>{ setG(new game()); setMode("map");})}}>Click to start</button>;
+      return <button onClick={() => {promises.then(() =>{ setG(new game()); setMode("potions");})}}>Click to start</button>;
   }
   else if (mode == "map"){
     if(g){
-      return <MainMap g={g} recall={(s : string) => transition(s)}/>
+      return <MainMap g={g} recall={(s : exp_modes) => transition(s)}/>
     }
   }  
   else if (mode == "chase"){

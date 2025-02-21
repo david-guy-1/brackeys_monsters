@@ -6,8 +6,43 @@ import { d_image } from "../canvasDrawing";
 import { dag } from "../dag";
 import { canvas_size } from "./constants";
 
+
 export function get_draw_commands(m : monster): draw_command[]{
     return [d_image("images/monster.png", m.position)];
+}
+export class fairy {   
+    position : point
+    name : string
+    age : number = 0
+    attrib : Record<string, any> = {};
+    active : boolean = true;
+    constructor(position : point,name : string){
+        this.position=position;
+        this.name=name;
+    }
+    tick(g : game){
+        this.age++;
+        if(this.attrib.tick != undefined){
+            this.attrib.tick(g);
+        }
+    }
+    check(g : game, item : monster  | "swing" | fireball_spell | repel_spell){
+        console.log("fairy hit!");
+        if(this.attrib.hit != undefined){
+            this.attrib.hit(g, item)
+        }
+    }
+}
+// default for all attacks 
+function default_hit(item2 : monster, g : game, item :attack_type){
+    if(item instanceof repel_spell){
+        g.move_wall(item2.position, repel_monster(item2.position, item));
+        if(item2 instanceof seeing_monster){
+            item2.direction = Math.atan2(item.velocity[1], item.velocity[0]);
+        }
+    } else {
+        item2.active = false;
+    }
 }
 
 export class monster { 
@@ -16,13 +51,18 @@ export class monster {
     age : number = 0;
     active : boolean = true; 
     lasering : undefined | {"type" : "threat" , time : number, direction : number, range : number, active_time : number} | {"type" : "active", time : number,direction : number, range : number}; 
-    attrib : Record<string, any> = {}; 
+    attrib : Record<string, any> = {"hit" : (game : game, type :attack_type) => default_hit(this, game, type)}; 
     constructor(position : point, name : string = ""){
         this.position = position; 
         this.name = name;
+        // default repel ability
+
     }
     tick(g : game){
         this.age++;
+        if(this.attrib.tick != undefined){
+            this.attrib.tick(g);
+        }
         // handle lasers
         if(this.lasering != undefined){
             if(this.lasering.type == "threat"){
@@ -157,11 +197,10 @@ export function repel_monster(x : point, y : repel_spell) {
 }
 
 type swing_type = {"angle" : number, "velocity" : number, size : number, "lifespan" : number};
-
 class game implements game_interface{
     //fundamentals 
     dims : point = [0,0]; // width, height
-    mode : "chase" | "move" | "stealth" | "repel" | "escort" | "collect" | "maze" | "potions"= "chase"; 
+    mode :modes = "chase"; 
     time : number = 0;
 
     // player movement
@@ -170,6 +209,7 @@ class game implements game_interface{
 
     //monsters
     monsters : monster[] = [];
+    fairies : fairy[] = [];
 
     swing : undefined | swing_type = undefined
     // common stuff
@@ -245,6 +285,7 @@ class game implements game_interface{
     } ; 
     clear(){
         this.monsters = []; 
+        this.fairies = []; 
         this.trees = [];
         this.repel_spells = [];
         this.fireball_spells = [];
@@ -482,12 +523,14 @@ class game implements game_interface{
             this.move_wall(this.player, this.target,15) ; 
             this.player = moveIntoRectangleWH(this.player, [0,0], this.dims) as point;   
             this.get_monsters().forEach(x => x.tick(this));
+            this.fairies.forEach(x => x.tick(this));
             this.handle_repel();
             this.handle_fireball();
             this.handle_swing();
             this.handle_collect();
             this.handle_lasers();
             this.clear_deleted_monsters();
+            this.handle_fairy_touch();
         }
         if(this.mode == "chase"){
             return this.tick_chase();
@@ -619,20 +662,20 @@ class game implements game_interface{
     get_monsters(){
         return this.monsters;
     }
-    attack_monster(monster : monster, type : "fireball" | "swing"){
-        monster.active = false;
+    attack_monster(monster : monster, type :attack_type){
+        if(monster.attrib.hit != undefined){
+            monster.attrib.hit(this, type);
+        }
     }
     handle_repel(){
         // repel monsters
         for(let item of this.repel_spells){
             item.position = lincomb(1, item.position, 1, item.velocity) as point; 
             item.tick();
-            for(let item2 of this.monsters.concat(this.monsters).concat(this.monsters).concat(this.monsters)){
+            for(let item2 of this.monsters){
                 if(dist(item.position, item2.position) < item.width){
-                    this.move_wall(item2.position, repel_monster(item2.position, item));
-                }
-                if(item2 instanceof seeing_monster){
-                    item2.direction = Math.atan2(item.velocity[1], item.velocity[0]);
+                    this.attack_monster(item2, item);
+
                 }
             }
         }
@@ -644,25 +687,34 @@ class game implements game_interface{
             item.tick();
             for(let item2 of this.get_monsters()){
                 if(dist(item.position, item2.position) < item.width){
-                    this.attack_monster(item2, "fireball")
+                    this.attack_monster(item2, item)
                 }
             }
         }
         this.fireball_spells = this.fireball_spells.filter(x => x.lifespan > 0);
     }
+    swing_gets_point(point : point){
+        if(this.swing == undefined){
+            return false;
+        }
+        let v = lincomb(1, point, -1, this.player); 
+        let distance = len(v);
+        if(distance == 0){
+            return true;
+        } else if(distance <= this.swing.size) {
+            // compare angle 
+            let angle =angle_between(v,[Math.cos(this.swing.angle), Math.sin(this.swing.angle)]);
+            if(angle < 1.2 * this.swing.velocity){
+                return true
+            } 
+        }
+        return false; 
+    }
     handle_swing(){
         if(this.swing != undefined){
             for(let monster of this.get_monsters()){
-                let v = lincomb(1, monster.position, -1, this.player); 
-                let distance = len(v);
-                if(distance == 0){
+                if(this.swing_gets_point(monster.position)){
                     this.attack_monster(monster, "swing");
-                } else if(distance <= this.swing.size) {
-                    // compare angle 
-                    let angle =angle_between(v,[Math.cos(this.swing.angle), Math.sin(this.swing.angle)]);
-                    if(angle < 1.2 * this.swing.velocity){
-                        this.attack_monster(monster, "swing");
-                    } 
                 }
             }
             this.swing.angle += this.swing.velocity;
@@ -690,7 +742,28 @@ class game implements game_interface{
             }
         }
     }
-
+    handle_fairy_touch(){
+        for(let fairy of this.fairies){
+            for(let monster of this.monsters){
+                if(dist(monster.position, fairy.position) < 20){
+                    fairy.check(this,monster);
+                }
+            }
+            for(let item of this.repel_spells){
+                if(dist(item.position, fairy.position) < item.width){
+                    fairy.check(this,item);
+                }
+            }
+            for(let item of this.fireball_spells){
+                if(dist(item.position, fairy.position) < item.width){
+                    fairy.check(this,item);
+                }
+            }
+            if(this.swing_gets_point(fairy.position)){
+                fairy.check(this,"swing")
+            }
+        }
+    }
     //for maze stuff
     is_tree(x : number, y : number){
         let tree = this.maze_points[x][y];
