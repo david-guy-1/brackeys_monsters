@@ -23,11 +23,12 @@ export class fairy {
     age : number = 0
     attrib : Record<string, any> = {};
     active : boolean = true;
-    should_check : (g : game, type : attack_type | monster) => boolean;
+    should_check : (g : game, type : attack_type | monster) => boolean; // hit by player or monster
     hit : (g : game, type : attack_type) => void; // hit by player attack
     touch_player : (g : game) => void; //touched player
     tick_fn : (g : game) => void
     monster_touch :(g : game, m : monster) => void;  // touched monster
+    
     constructor(position : point,name : string, should_check :(g : game, type : attack_type | monster) => boolean , hit : (g : game) => void, touch_player : (g : game) => void,tick_fn : (g : game) => void,monster_touch :(g : game, m : monster) => void){
         this.position=position;
         this.name=name;
@@ -61,7 +62,7 @@ export class monster {
     active : boolean = true; 
     
     see_player : (g : game) => void;
-    should_check : (g : game) => boolean;
+    should_check : (g : game, type : attack_type ) => boolean; // hit by player attack
     hit : (g : game, type : attack_type) => void; // hit by player attack
     touch_player : (g : game, laser : boolean) => void; // monster touched player
     tick_fn : (g : game) => void
@@ -73,7 +74,7 @@ export class monster {
     direction : number}
 
     attrib : Record<string, any> = {}; 
-    constructor(position : point, name : string = "",see_player : (g : game) => void, should_check :(g : game) => boolean , hit : (g : game, type : attack_type) => void, touch_player : (g : game , laser: boolean) => void,tick_fn : (g : game) => void){
+    constructor(position : point, name : string = "",see_player : (g : game) => void, should_check :(g : game, type : attack_type) => boolean , hit : (g : game, type : attack_type) => void, touch_player : (g : game , laser: boolean) => void,tick_fn : (g : game) => void){
         this.position = position; 
         this.name = name;
         this.see_player = see_player;
@@ -253,26 +254,31 @@ class game implements game_interface{
         console.log([this.towns, this.town_locations]);
     } ; 
     clear(){
-        this.monsters = []; 
+        this.time = 0; 
         this.monsters_killed = 0;
+        this.monsters = []; 
         this.fairies = []; 
-        this.exit = undefined; 
+        this.swing = undefined;
+
         this.trees = [];
-        this.repel_spells = [];
-        this.fireball_spells = [];
         this.seen_time = 0;
         this.seen_total = 0;
+        this.repel_spells = [];
+        this.fireball_spells = [];
         this.walls = [];
-        this.time = 0; 
+        this.exit = undefined;
+
         this.escort_points = [];
         this.coin_points = [];
         this.collected = []; 
+
         this.maze_points = []; 
         this.potions = []
         this.rules = [];
         this.already_put = []; 
         
         this.tick_fn = undefined;
+        // DO NOT CLEAR DAG
     }
     setup_chase(w : number, h : number){
         this.clear()
@@ -419,8 +425,7 @@ class game implements game_interface{
             this.player = moveIntoRectangleWH(this.player, [0,0], this.dims) as point;   
             this.get_monsters().forEach(x => x.tick(this));
             this.fairies.forEach(x => x.tick(this));
-            this.handle_repel();
-            this.handle_fireball();
+            this.handle_spells();
             this.handle_swing();
             this.handle_collect();
             this.handle_lasers();
@@ -468,35 +473,23 @@ class game implements game_interface{
     get_monsters(){
         return this.monsters;
     }
-    attack_monster(monster : monster, type :attack_type){
-        if(monster.attrib.hit != undefined){
-            monster.attrib.hit(this, type);
-        }
-    }
-    handle_repel(){
-        // repel monsters
-        for(let item of this.repel_spells){
-            item.position = lincomb(1, item.position, 1, item.velocity) as point; 
-            item.tick();
-            for(let item2 of this.monsters){
-                if(dist(item.position, item2.position) < item.width){
-                    this.attack_monster(item2, item);
 
+    handle_spells(){//does not handle swing
+        let lst = this.repel_spells.concat(this.fireball_spells);
+        for(let spell of lst){
+            spell.tick();
+            for(let monster of this.monsters){
+                if(monster.should_check(this, spell) && dist(spell.position, monster.position) < spell.width ){
+                    monster.hit(this, spell);
+                }
+            }    
+            for(let fairy of this.fairies){
+                if(fairy.should_check(this, spell) && dist(spell.position, fairy.position) < spell.width ){
+                    fairy.hit(this, spell);
                 }
             }
         }
         this.repel_spells = this.repel_spells.filter(x => x.lifespan > 0);
-    }
-    handle_fireball(){
-        for(let item of this.fireball_spells){
-            item.position = lincomb(1, item.position, 1, item.velocity) as point; 
-            item.tick();
-            for(let item2 of this.get_monsters()){
-                if(dist(item.position, item2.position) < item.width){
-                    this.attack_monster(item2, item)
-                }
-            }
-        }
         this.fireball_spells = this.fireball_spells.filter(x => x.lifespan > 0);
     }
     swing_gets_point(point : point){
@@ -518,9 +511,9 @@ class game implements game_interface{
     }
     handle_swing(){
         if(this.swing != undefined){
-            for(let monster of this.get_monsters()){
-                if(this.swing_gets_point(monster.position)){
-                    this.attack_monster(monster, "swing");
+            for(let monster of (this.monsters as (monster|fairy)[]).concat(this.fairies)){
+                if(monster.should_check(this, "swing") && this.swing_gets_point(monster.position)){
+                    monster.hit(this, "swing");
                 }
             }
             this.swing.angle += this.swing.velocity;
@@ -531,7 +524,6 @@ class game implements game_interface{
             }
         }
     }
-
 
     handle_seeing_monsters(){
         let seen = false; 
@@ -563,7 +555,6 @@ class game implements game_interface{
         return [];
     }
     
-
     handle_collect(){
         for(let [i, coin] of this.coin_points.entries()){
             if(dist(this.player, coin) < 60) {
@@ -571,6 +562,7 @@ class game implements game_interface{
             }
         }
     }
+    
     handle_lasers(){
         for(let monster of this.get_monsters()){
             if(monster.lasering && monster.lasering.type == "active"){
@@ -581,6 +573,7 @@ class game implements game_interface{
             }
         }
     }
+    //fairy touch anything (monsters, player attacks, player itself)
     handle_fairy_touch(){
         for(let fairy of this.fairies){
             //check monsters
@@ -612,10 +605,8 @@ class game implements game_interface{
 
     handle_monster_touch_player(){
         for(let monster of this.monsters){
-            if(monster.should_check(this)){
-                if(dist(monster.position, this.player) < 20){
-                    monster.touch_player(this,false);
-                }
+            if(dist(monster.position, this.player) < 20){
+                monster.touch_player(this,false);
             }
         }
     }
