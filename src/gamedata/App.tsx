@@ -2,11 +2,6 @@ import { useState } from 'react'
 import game, {  repel_spell } from './game';
 
 import { data_obj as chase_obj  } from './chase_gameData';
-import { data_obj as move_obj } from './move_gameData';
-import { data_obj as stealth_obj } from './stealth_gameData';
-import { data_obj as repel_obj } from './repel_gameData';
-import { data_obj as escort_obj } from './escort_gameData';
-import { data_obj as collect_obj } from './collect_gameData';
 import { data_obj as maze_obj } from './maze_gameData';
 import { data_obj as potions_obj } from './potions_gameData';
 import { events } from '../EventManager';
@@ -18,14 +13,10 @@ import { gamedata } from '../interfaces';
 import MainMap from './MainMap';
 import { loadImage } from '../canvasDrawing';
 
+// mousemove
 function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
-  if(g.mode == "chase" || g.mode == "stealth" || g.mode == "escort" || g.mode == "collect" || g.mode == "potions"){
-    if((e.target as HTMLElement).getAttribute("data-key")?.indexOf("main_canvas") != -1){ // topmost canvas element that is valid
+  if((e.target as HTMLElement).getAttribute("data-key")?.indexOf("main_canvas") != -1){ // topmost canvas element that is valid
       store.mouse_pos = [e.offsetX, e.offsetY];// set mouse position 
-    }
-  }
-  if(g.mode == "potions"){
-
   }
 }
 function click_fn(e : MouseEvent, g : game, store : globalStore_type ){
@@ -93,54 +84,21 @@ function App() {
       g?.setup_chase(2000, 2000)
       data = clone_gamedata(chase_obj); 
       data.g = g;
-      data.prop_fns["new_game"] =  () => transition("move");
-      // register event listener;
-  } else if (mode == "move"){
-      g?.setup_move(10, 10);
-      data = clone_gamedata(move_obj);
-      console.log(data);
-      data.g = g;
-      data.prop_fns["new_game"] = () => transition("stealth");
-  }  else if (mode == "stealth"){
-    g?.setup_stealth(2000, 2000);
-    data = clone_gamedata(stealth_obj); 
-    data.g = g;
-    data.prop_fns["new_game"] =  () => transition("repel");
-    // register event listener;
-  } else if (mode == "repel"){
-    g?.setup_repel(600,600);
-    data = clone_gamedata(repel_obj); 
-    data.g = g;
-    data.prop_fns["new_game"] =  () => transition("escort");
-    // register event listener;
-    
-  }else if (mode == "escort"){
-    // set up game 
-      g?.setup_escort(2000, 2000, [[200,200], [800, 200], [1300, 10],[1900, 1100],[1950, 1800], [600, 1800], [400, 100]], 10);
-      data = clone_gamedata(escort_obj); 
-      data.g = g;
-      data.prop_fns["new_game"] =  () => transition("collect");
-      // register event listener;
-  }
-  else if (mode == "collect"){
-    // set up game 
-      g?.setup_collect(2000, 2000);
-      data = clone_gamedata(collect_obj); 
-      data.g = g;
-      data.prop_fns["new_game"] =  () => transition("maze");
+      data.prop_fns["victory"] =  () => transition("map");
+      data.prop_fns["defeat"] =  () => transition("map");
       // register event listener;
   } else if (mode == "maze"){
     g?.setup_maze(18,15);
     data = clone_gamedata(maze_obj); 
     data.g = g;
-    data.prop_fns["new_game"] =  () => transition("potions");
+    data.prop_fns["new_game"] =  () => transition("map");
       
   }else if (mode == "potions"){
     g?.setup_potions(18);
     
     data = clone_gamedata(potions_obj); 
     data.g = g;
-    data.prop_fns["new_game"] =  () => transition("chase");
+    data.prop_fns["new_game"] =  () => transition("map");
       
   }
   else if (mode == "test"){

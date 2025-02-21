@@ -58,9 +58,16 @@ export let prop_commands : prop_commands_type = function(g : game,globalStore : 
     move_player_to_point(g, globalStore);
     
     // if all monsters are dead
-    if(g.monsters.length == 0){
-        return [["new_game", null]];
+    if(g.tick_fn == undefined){
+        throw "chase without a victory or defeat condition"
     }
+    let result = g.tick_fn(g);
+    if(result == "victory"){
+        return [["victory", g]];
+    } else if (result == "defeat"){
+        return [["defeat", g]];
+    }
+
     let output : props_to_run = []; 
     return output; 
 }
