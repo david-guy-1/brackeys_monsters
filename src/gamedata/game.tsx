@@ -44,16 +44,7 @@ export class fairy {
     }
 }
 // default for all attacks 
-function default_hit(item2 : monster, g : game, item :attack_type){
-    if(item instanceof repel_spell){
-        g.move_wall(item2.position, repel_monster(item2.position, item));
-        if(item2.vision != undefined){
-            item2.vision.direction = Math.atan2(item.velocity[1], item.velocity[0]);
-        }
-    } else {
-        item2.active = false;
-    }
-}
+
 
 export class monster { 
     position : point;
@@ -128,6 +119,7 @@ export class repel_spell {
         this.draw = rotate_command(scale_command(canonical_repel, [0,0], 1, width/100), [0,0], Math.atan2(velocity[1], velocity[0]))
     }
     tick(){
+        this.position = lincomb(1,this.position,1,this.velocity) as point;
         this.lifespan--;
     }
 }
@@ -146,16 +138,13 @@ export class fireball_spell {
         this.draw = rotate_command(scale_command(canonical_fireball, [0,0],  width/100, width/100), [0,0], Math.atan2(velocity[1], velocity[0]))
     }
     tick(){
+        this.position = lincomb(1,this.position,1,this.velocity) as point;
         this.lifespan--;
     }
 }
 
 
-export function repel_monster(x : point, y : repel_spell) {
-    // move monster in direction of repel spell
-    let position = lincomb(1, x, 0.9, y.velocity) as point;
-    return position; 
-}
+
 
 type swing_type = {"angle" : number, "velocity" : number, size : number, "lifespan" : number};
 class game implements game_interface{
@@ -165,6 +154,7 @@ class game implements game_interface{
     time : number = 0;
     move_flag = true; // if the mode is one where the player moves around 
     monsters_killed : number = 0; 
+    player_hits : number = 0;
     seed : string;
     // player movement
     player : point = [400,400];
@@ -256,6 +246,7 @@ class game implements game_interface{
     clear(){
         this.time = 0; 
         this.monsters_killed = 0;
+        this.player_hits = 0;
         this.monsters = []; 
         this.fairies = []; 
         this.swing = undefined;
@@ -569,6 +560,7 @@ class game implements game_interface{
                 let dist = pointClosestToSegment(this.player, monster.position, lincomb(1, monster.position, monster.lasering.range, [Math.cos(monster.lasering.direction), Math.sin(monster.lasering.direction)]))[2];
                 if(dist < 7){
                     monster.touch_player(this ,true);
+                    this.player_hits++;
                 }
             }
         }
@@ -607,6 +599,7 @@ class game implements game_interface{
         for(let monster of this.monsters){
             if(dist(monster.position, this.player) < 20){
                 monster.touch_player(this,false);
+                this.player_hits++;
             }
         }
     }

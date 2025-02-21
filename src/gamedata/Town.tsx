@@ -3,7 +3,7 @@ import game from "./game";
 function town({g, town, recall} : {g : game, town : string, recall : (data : any) => void} ){
     let exposed = g.graph.get_exposed_vertices(g.collected_dag);
     let inner = []
-    if(!exposed.has(town)){
+    if(exposed.intersection(g.towns[town]).size == 0){
         inner.push("Nope");
     }
     else {
@@ -15,9 +15,11 @@ function town({g, town, recall} : {g : game, town : string, recall : (data : any
             } else if (can_do){
                 inner.push("CANDOIT");
                 inner.push(<button onClick={() => recall(vertex)}>Start </button>)
+                inner.push(<br />)
             }
         }
     }
+    inner.push(<br />)
     inner.push(<button onClick={() => recall("back")}>Back </button>)
     return <><img src="images/bg6.png" style={{"position":"absolute", top:0, zIndex:-1,left:0}}/>
         {inner}

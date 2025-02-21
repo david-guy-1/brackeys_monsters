@@ -5,18 +5,17 @@ import { dist } from "../lines";
 import { draw } from "../process_draws";
 import { d_image } from "../canvasDrawing";
 
-function handleClick(e : MouseEvent,g : game, recall : (s : exp_modes)=> void){
-    console.log([e.offsetX, e.offsetY]);
+function handleClick(e : MouseEvent,g : game, recall : (s : string)=> void){
     for(let town of Object.keys(g.town_locations)){
         let loc = g.town_locations[town];
         if(dist([e.offsetX, e.offsetY], loc) < min_town_dist * 0.5){
-            recall(["town", town]);
+            recall(town);
             break;
         }
     }
 }
 
-function MainMap({g,recall} : {g : game ,recall : (s : exp_modes) => void} ){
+function MainMap({g,recall} : {g : game ,recall : (s : string) => void} ){
     let x = useRef<HTMLCanvasElement>(null); 
     useEffect(function(){
         let lst : draw_command[] = []; 
@@ -32,7 +31,6 @@ function MainMap({g,recall} : {g : game ,recall : (s : exp_modes) => void} ){
                 lst.push(d_image("images/closed_town.png", loc));
             }
         }
-        console.log(lst);
         draw(lst, x as React.RefObject<HTMLCanvasElement> );
     },[])
     return <><canvas ref={x} width={canvas_size[0]} height={canvas_size[1]} onClick={(e) => handleClick(e.nativeEvent,g,  recall)}></canvas></>;
