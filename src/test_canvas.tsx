@@ -18,7 +18,7 @@ commands.push(sword_command)
 
 // boilerplate 
 
-console.log(JSON.stringify(commands[0]));
+//console.log(JSON.stringify(commands[0]));
 commands = commands.map(x => displace_command(x, [300,300]));
 
 function test_canvas(){

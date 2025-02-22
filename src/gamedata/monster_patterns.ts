@@ -64,7 +64,7 @@ the last two returns the monster
 // attrib: uses angle and angel_vel, must have speed
 function wander_tick(m : monster|fairy , g:game){
     m.attrib["angle_vel"] += (Math.random()-0.5)*0.01;
-    if(Math.abs(m.attrib["angle_vel"]) > 0.1){
+    if(Math.abs(m.attrib["angle_vel"]) > 0.05){
         m.attrib["angle_vel"] = 0; 
     }
     m.attrib["angle"] += m.attrib["angle_vel"];

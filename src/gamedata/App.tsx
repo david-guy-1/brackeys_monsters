@@ -13,6 +13,7 @@ import { gamedata } from '../interfaces';
 import MainMap from './MainMap';
 import { loadImage } from '../canvasDrawing';
 import Town from './Town';
+import {choice as randchoice} from "../random"
 import { laser_monster, pursue, shoot_bullets, wanderer } from './monster_patterns';
 import { prepare_level } from './prepare_level';
 
@@ -56,36 +57,42 @@ function keydown(e : KeyboardEvent, g : game, store : globalStore_type ){
     }
   } else if(g.mode != "potions"){
     if(e.key.toLowerCase() == "q"){
-      g.cast_repel_spell(direction_vector[0], direction_vector[1], 60,84);
+      if(g.can_repel && g.time - g.last_repel >= 60){
+        g.cast_repel_spell(direction_vector[0], direction_vector[1], 60,84);
+      }
     }
     if(e.key.toLowerCase() == "w"){
-      g.cast_fireball_spell(direction_vector[0], direction_vector[1], 60,84);
+      if(g.can_fireball && g.time - g.last_fireball >= 60){
+        g.cast_fireball_spell(direction_vector[0], direction_vector[1], 60,84);
+      }
     }
     if(e.key.toLowerCase() == "e"){
-      g.start_swing(100, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2);
-      
+      if(g.can_swing && g.time - g.last_swing >= 30){
+        g.start_swing(100, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2);
+      }
     }  
   }
 }
+
+  // default store, override it if necessary 
+
 
 function App() {
   const [g, setG] = useState<game | undefined>(undefined);
   const [mode, setMode] = useState<exp_modes >("menu");
   const [transitioning, setTransitioning] = useState<boolean>(false);
-  const [data, setGameData] = useState<gamedata>(clone_gamedata(chase_obj));
-
-  console.log([transitioning, mode]);
-  
+  const [data, setGameData] = useState<gamedata>(clone_gamedata(chase_obj)); 
   function transition(s : exp_modes){
     setTransitioning(true);
     setTimeout(() => {setMode(s); setTransitioning(false)}, 0);
   }
+
   if(transitioning){
     return <>asdsasd</>
   }
-  // default store, override it if necessary 
-  let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0]}; 
 
+  let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0]}; 
+  
   events["mousemove a"] = [move_canvas, null]
   events["click a"] = [click_fn, null]
   events["keydown a"] = [keydown, null];
@@ -97,7 +104,7 @@ function App() {
 
       let promises = Promise.allSettled(image_files.map(x => loadImage("images/" + x)))
     
-      return <button onClick={() => {promises.then(() =>{ setG(new game("a", 30)); setMode("map");})}}>Click to start</button>;
+      return <button onClick={() => {promises.then(() =>{ setG(new game("a", 50)); setMode("map");})}}>Click to start</button>;
   }
   else if (mode == "map"){
     if(g){
@@ -122,33 +129,11 @@ function App() {
         setMode("map");
       } else { 
         let town = mode[1];
+
         let sort_index = g?.sort.indexOf(town);
-        let choice = "fetch maze escape potions escort kill fairy assassin"
-        choice = "assassin"
+        let choice = g.item_tasks[town];
         prepare_level(g, choice, sort_index); 
-        /*
-        g?.setup_maze(18,15);
-        for(let i=0; i< 1; i++){
-          let m = wanderer(g, Math.random() * 1, Math.random() * 1, Math.random() * 5 + 1); 
-          if(i == 14){
-            laser_monster(m);
-          }
-          if(i == 13){
-            m.vision = {"vision_arc" : 0.4, "vision_range" : 100, "direction" : 0};
-          }
-          if(i == 0){
-            shoot_bullets(m);
-          }
-        }
-        g.escort_points = [[400,400]];
-        for(let i=0 ; i<10; i++){
-          g.escort_points.push([Math.random() * 2000,Math.random() * 2000])
-          g.escort_speed = 7;
-        }
-        for(let i=0; i<100; i++){
-          g.trees.push([Math.random() * 2000,Math.random() * 2000 ])
-        }
-          */
+
         let data = clone_gamedata(chase_obj); 
         if(choice == "maze"){
           data = clone_gamedata(maze_obj); 
@@ -158,18 +143,58 @@ function App() {
         }
         data.g = g;
         setGameData(data);
-        setMode("game");
+        setMode(["game", mode[1], mode[2]]);
       }
     }
   }
-  else if (mode == "game"){
+  else if (mode[0] == "game"){
       // set up game
-      data.prop_fns["victory"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You win!"; setTimeout(() =>transition("map"), 1000)}};
-      data.prop_fns["defeat"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You lose!"; setTimeout(() =>transition("map"), 1000)}};
+      data.prop_fns["victory"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You win!"; setTimeout(() =>transition(["win", mode[1],mode[2]]), 1000)}};
+      data.prop_fns["defeat"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You lose!"; setTimeout(() =>transition(["lose", mode[1], mode[2]]), 1000)}};
       return <GameDisplay data={data} globalStore={store}/>
       // register event listener;
   }else if (mode == "test"){
     return <Test_canvas />;
+  } else if(mode[0] == "win"){
+    if(g == undefined){
+      throw "win undefined game"; 
+    }
+    g?.collected_dag.add(mode[1]);
+    let ratio = g?.sort.indexOf( mode[1]) / g?.sort.length; 
+    let message = "";
+    let revealed = [...g.graph.get_exposed_vertices(g.collected_dag)].map(x => g.item_tasks[x]);
+    if((revealed.indexOf("escort") != -1 ||revealed.indexOf("fairy") != -1 ) && g.can_repel == false){
+      g.can_repel = true; 
+      message = "You learned how to cast a repel spell! (press Q)"
+    }
+    if((revealed.indexOf("kill") != -1 ||revealed.indexOf("assassin") != -1 ) && g.can_swing == false){
+      g.can_swing = true; 
+      message = "You are given a sword. You can now kill monsters. (press E)"
+    }
+    
+    if(ratio > 0.8 && g.can_fireball == false){
+      g.can_fireball= true; 
+      message = "You can now cast fireballs! (press W)"
+    }
+
+    return <>You win! You get {mode[1]}<br />{message}
+    <br />
+    <button onClick={()=>transition("map")}> Go back</button></>
+  }
+  else if(mode[0] == "lose"){
+    return <>Oh no! Something went wrong! Remember: Nothing can go wrong!<br />
+    {
+      function(){
+      if(mode[2] == "escape"){
+        return "You were seen.";
+      }if(mode[2] == "escort"){
+        return "You failed to protect the person.";
+      }if(mode[2] == "fairy"){
+        return "You failed to protect the fairy.";
+      }
+      return "You got hit by too many monsters."
+    }()} <br />
+    You could have gotten {mode[1]} but you didn't <button onClick={()=>transition("map")}> Go back</button></>
   }
   return "none of the modes match - " + mode;  
 

@@ -11,9 +11,10 @@ function town({g, town, recall} : {g : game, town : string, recall : (data : any
             let can_do = exposed.has(vertex);
             let already_done = g.collected_dag.has(vertex);
             if(already_done){
-                inner.push("already did");
+                inner.push("already did " + vertex);
+                inner.push(<br />)
             } else if (can_do){
-                inner.push("CANDOIT");
+                inner.push(`Task:${g.item_tasks[vertex]}, item:${vertex}, prereqs:${[...g.graph.get_vertex_by_name(vertex).prev].map(x => x.name).join(" ")}`);
                 inner.push(<button onClick={() => recall(vertex)}>Start </button>)
                 inner.push(<br />)
             }

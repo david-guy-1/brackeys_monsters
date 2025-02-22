@@ -127,7 +127,23 @@ export function prepare_level(g : game, choice : string, sort_index : number){
             }
         }
     }
-    // boilerplate 
+
+    if(choice == "fastwin"){
+        g.setup_chase(size, size);
+        g.player = [size/2, 100];
+
+        g.tick_fn = function(g){
+            if(g.time > 10){
+                return "victory";
+            }
+            if(g.player_hits > player_max_hp){
+                return "defeat";
+            }
+        }
+    }
+
+    // boilerplate
+    
     if( choice != "maze" && choice != "potions"){
         let old_g_fn = g.tick_fn;
         g.tick_fn = function(g : game){
@@ -142,7 +158,14 @@ export function prepare_level(g : game, choice : string, sort_index : number){
                     m.vision = {vision_range: 200 + 100 * ratio,
                         vision_arc: 0.3 + 0.15 * ratio,
                         direction: Math.random() * 2 * Math.PI}
-                } else if(choice != "escape"){ // assassin has both seeing monsters and non-seeing monsters;
+                    m.see_player = function(g){
+                        g.player_hits++;
+                    }
+                    if(choice == "assassin" && m.name != "target") {
+                            m.should_check = () => false; 
+                    }
+                } 
+                if(choice != "escape"){ // assassin has both seeing monsters and non-seeing monsters;
                     let m : monster | undefined = undefined;
                     if(Math.random() < 0.5){
                         m = wanderer(g, Math.random() * g.dims[0], Math.random() * g.dims[1] , 2 + ratio)
@@ -168,7 +191,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
                             m.name = "shoot";
                         }
                     } 
-                    if(choice == "kill" && m.name != "assassin") {
+                    if(choice == "assassin" && m.name != "target") {
                         m.should_check = () => false; 
                     }
                 }

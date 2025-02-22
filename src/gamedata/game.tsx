@@ -194,11 +194,19 @@ class game implements game_interface{
     // dag 
     graph : dag
     towns : Record<string, Set<string>>; 
+    item_tasks : Record<string, string>; 
     collected_dag : Set<string> = new Set();
     town_locations : Record<string, point>; 
     sort : string[];
     // tick stuff - returns if the player has won or lost
     tick_fn ?: (g : game) => "victory" | "defeat" | undefined; 
+
+    last_swing : number = 0;
+    last_repel : number = 0;
+    last_fireball : number = 0;
+    can_swing : boolean = false;
+    can_repel : boolean = false;
+    can_fireball : boolean = false;
 
     // objective info
     kill_target : number | undefined = undefined;
@@ -207,7 +215,7 @@ class game implements game_interface{
     constructor(seed : string, n_vertices : number){
         this.seed = seed;  
         this.graph = new dag(_.range(n_vertices).map(x => x.toString()), []);  
-        for(let i=0; i<n_vertices; i++){
+        for(let i=0; i<2*n_vertices; i++){
             try {
                 this.graph.add_edge(Math.floor(Math.random() * n_vertices).toString(), Math.floor(Math.random() * n_vertices).toString());
                 this.graph.add_edge(i.toString(), Math.floor(Math.random() * n_vertices).toString());
@@ -216,6 +224,7 @@ class game implements game_interface{
 
             }
         }
+        let exposed_vertices = this.graph.get_exposed_vertices(new Set()); 
         while(true){
             let n_towns = Math.ceil(n_vertices/3);
             this.towns = {}; 
@@ -223,7 +232,13 @@ class game implements game_interface{
                 this.towns[i.toString()] = new Set(); 
             }
             for(let i=0; i<n_vertices; i++){
-                this.towns[Math.floor(Math.random() * n_towns).toString()].add(i.toString());
+                let chosen_town = 0;
+                if(exposed_vertices.has(i.toString())){
+                    chosen_town = 0;
+                } else {
+                    chosen_town =  Math.floor(Math.random() * (n_towns-1)) + 1;
+                }
+                this.towns[chosen_town.toString()].add(i.toString());
                 
             }
             if(_.every(Object.values(this.towns).map(x => x.size != 0))){
@@ -234,6 +249,7 @@ class game implements game_interface{
         for(let item of Object.keys(this.towns)){
             while(true){
                 let next_point : point = [Math.random() * canvas_size[0], Math.random() * canvas_size[1]];
+                next_point = lincomb(0.7, next_point, 0.1, canvas_size) as point;
                 if(_.some(Object.values(this.town_locations).map(x => dist(x, next_point) < min_town_dist))){
                 } else {
                     this.town_locations[item] = next_point;
@@ -242,7 +258,19 @@ class game implements game_interface{
             }
         }
         this.sort =  this.graph.toposort()
-        console.log([this.towns, this.town_locations]);
+        this.item_tasks = {};
+        for(let [i, item] of this.sort.entries()){
+            let ratio = i / this.sort.length;
+            let choice = "fetch maze escape potions"
+            if(ratio > 0.3){
+              choice += " escort fairy"
+            }
+            if(ratio > 0.5){
+              choice += " kill assassin";
+            }
+            let lst = choice.split(" ");
+            this.item_tasks[this.sort[i]] =lst[Math.floor(Math.random() * lst.length)]
+        }
     } ; 
     clear(){
         this.time = 0; 
@@ -277,7 +305,12 @@ class game implements game_interface{
 
         this.kill_target  = undefined;
         this.time_target  = undefined;
-        // DO NOT CLEAR DAG
+
+        this.last_swing = 0;
+        this.last_repel = 0;
+        this.last_fireball = 0;
+
+        // DO NOT CLEAR DAG 
     }
     setup_chase(w : number, h : number){
         this.clear()
@@ -341,7 +374,7 @@ class game implements game_interface{
             potions.push(`hsl(${Math.random() * 360}, 75%, 80% )`)
         }
         this.potions =  _.shuffle(potions).map(x => x.toString()); // correct value 
-        console.log(potions);
+        
 
         // generate rules to constrain potions
         while(this.rules.length < 12){
@@ -350,22 +383,25 @@ class game implements game_interface{
             let index = Math.floor(Math.random() * num_potions)
             let constrained_potion = this.potions[index];
             if(choice == "first"){
-                this.rules.push({type:"first", x : constrained_potion, y : Math.min(num_potions, Math.ceil(index * (1.2 + Math.random() * 0.3)))}); 
+                this.rules.push({type:"first", x : constrained_potion, y : Math.min(num_potions, Math.ceil((index +0.1)* (1.2 + Math.random() * 0.3)))}); 
             }
             if(choice == "last" && index != 0){
-                this.rules.push({type:"last", x : constrained_potion, y : Math.max(1, Math.floor(index * (0.8 - Math.random() * 0.2)))}); 
+                this.rules.push({type:"last", x : constrained_potion, y : Math.max(1, Math.floor((index-0.1) * (0.8 - Math.random() * 0.2)))}); 
             }
             if(choice == "before"){
                 let index2 = -1
                 while(index2 == -1 || index == index2){
                     index2 = Math.floor(Math.random() * num_potions);
                 }
-
-                this.rules.push({type:"before", x : constrained_potion, y : this.potions[index2]}); 
+                if(index2 < index){
+                    this.rules.push({type:"before", y : constrained_potion, x : this.potions[index2]});
+                } else {
+                    this.rules.push({type:"before", x : constrained_potion, y : this.potions[index2]}); 
+                }
             }
         }
         this.already_put = this.potions;
-        if(!this.check_potions()){
+        if(!_.every(this.check_potions())){
             throw "failure to generate";
         }
         this.already_put = [];
@@ -448,11 +484,13 @@ class game implements game_interface{
     }
     // all of these are WORLD (not canvas) coordinates , the game doesn't even know there is a canvas! 
     cast_repel_spell (x : number, y : number,  lifespan : number, width : number = 100, velocity : number = 10){
+        this.last_repel = this.time;
         let v = normalize ([x,y], velocity) as point; 
         this.repel_spells.push(new repel_spell(this.player, v, width, lifespan));
     }
 
     cast_fireball_spell (x : number, y : number,  lifespan : number, width : number = 100, velocity : number = 10){
+        this.last_fireball = this.time;
         let v = normalize ([x,y], velocity) as point; 
         this.fireball_spells.push(new fireball_spell(this.player, v, width, lifespan));
         
@@ -460,21 +498,15 @@ class game implements game_interface{
     start_swing(size : number, angle : number, lifespan : number, velocity : number){
         // angle is CENTER of swing
         // rescale(0, lifespan, start_angle, start_angle + velocity * lifespan, lifespan/2 ) = angle
+        this.last_swing = this.time;
         let start_angle = angle - velocity * lifespan/2; 
         this.swing = {"angle" : start_angle, "velocity" : velocity, "lifespan" : lifespan, "size" : size}
     }
-    seeing_monster_see_player(monster : monster, firstone : boolean = false) : monster[]{ //monsters that see the player
-        let seen : monster[] = [];
+    seeing_monster_see_player(monster : monster) : boolean{ //returns if the monster sees the player
         if( monster.vision && dist(this.player, monster.position) < monster.vision.vision_range && (dist(this.player, monster.position) == 0 || vector_angle(lincomb(1, this.player, -1, monster.position) as point, [Math.cos(monster.vision.direction), Math.sin(monster.vision.direction)]) <= monster.vision.vision_arc)){
-            seen.push(monster);
-            if(firstone){
-                return seen; 
-            } 
-            if(monster.attrib["see_player"] != undefined){
-                monster.attrib["see_player"](this);
-            }
+                return true; 
         }
-        return seen; 
+        return false; 
     }
     get_monsters(){
         return this.monsters;
@@ -531,11 +563,14 @@ class game implements game_interface{
     }
 
     handle_seeing_monsters(){
+        
         let seen = false; 
         for(let monster of this.monsters){
             if(monster.vision){
-                this.seeing_monster_see_player(monster);
-                seen = true;                 
+                if(this.seeing_monster_see_player(monster)){
+                    seen = true;
+                    monster.see_player(this);
+                }
             }
         }           
         if(seen){
@@ -548,7 +583,7 @@ class game implements game_interface{
     }
     handle_escort(){
         if(this.escort_points.length > 0){
-            console.log("got here");
+            
         // move the escorted person 
             let next_point = this.escort_points[this.escort_next_point];
             this.escort_pos = moveTo(this.escort_pos, next_point, this.escort_speed) as point;
@@ -637,7 +672,6 @@ class game implements game_interface{
         let g = this;
         let next_pos = lincomb(1, g.player, 1, next_v) as point;
         if(!pointInsideRectangleWH(next_pos, -0.01,-0.01,g.dims)){
-            console.log("oob");
             return "bounds";
         }
         let tree = g.is_tree(next_pos[0],next_pos[1]);
@@ -658,10 +692,10 @@ class game implements game_interface{
         for(let lst of [this.monsters, this.monsters, this.monsters, this.monsters]){
             for(let i=lst.length-1; i>= 0; i--){
                 if(lst[i].active == false){
-                    lst.splice(i,1);
                     if(lst[i].dont_count == false){
                         this.monsters_killed ++; 
                     }
+                    lst.splice(i,1);
                 }
             }
         }

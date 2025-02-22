@@ -31,7 +31,7 @@ function GameDisplay( props : {data  : gamedata, globalStore : globalStore_type}
     let {g ,draw_fn , anim_fn , sound_fn , init , button_click , prop_commands , display , reset_fn  , prop_fns}  = props.data;
     let globalStore = props.globalStore;
     const [display_data, change_display] = useState<display_type>(display);
-    console.log("rendering");
+    
 //    const globalStore = useState<globalStore_type>(props.store)[0];
     
     if(g == undefined){
@@ -45,7 +45,6 @@ function GameDisplay( props : {data  : gamedata, globalStore : globalStore_type}
         reset_fn(); 
         console.log("g cleared");
     }
-    console.log("refreshed");
     const [r, refresh] = useState<boolean>(false);
     let refs : Record<string, React.RefObject<HTMLCanvasElement> > = {}; 
     for(var item of display_data.canvas){
@@ -129,7 +128,6 @@ function GameDisplay( props : {data  : gamedata, globalStore : globalStore_type}
         }
         return function(){
             //componentWillUnmount
-            console.log("unmounting");
             clearInterval(interval); 
             interval = -1;
             changeSound(undefined);
@@ -165,7 +163,6 @@ function GameDisplay( props : {data  : gamedata, globalStore : globalStore_type}
     }
     for(let item of display_data.image){
         let [name,img_el, x,y,w,h] = item;
-        console.log(name)
         if(img_el){
             return_lst.push(<div style={{backgroundImage:`url(${name})`, position:"absolute", top : y + "px", left : x + "px", "zIndex" : -1,"width":w,"height":h}} key={name + " image" + x + " " + y} tabIndex={1}></div>)
         } else {

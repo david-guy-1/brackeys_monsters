@@ -11,7 +11,16 @@ type globalStore_type = {
 }
 
 // display modes (in App)
-type exp_modes = "game" | "menu" | "map" | "test" | ["town", string] | ["prepare" , any]; // decide what to prepare
+type exp_modes = ["game", string,string] | "menu" | "map" | "test" | ["town", string] | ["prepare", string] | ["win" , string, string] | ["lose", string, string]; 
+
+/*
+town : which town is selected
+
+prepare : which item is selected
+
+game/win/lose : the item and mode
+*/
+
 
 // game modes
 type modes =  "chase" | "maze" | "potions";
