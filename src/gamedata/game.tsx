@@ -14,9 +14,7 @@ type attack_type =  repel_spell | fireball_spell | "swing"
 // attribs have "this" = the monster, and take values  (game : game, type :attack_type) 
 // special ones are "see_player", "touch_player" and "hit"; 
 
-export function get_draw_commands(m : monster): draw_command[]{
-    return [d_image("images/monster.png", m.position)];
-}
+
 export class fairy {   
     position : point
     name : string
@@ -269,6 +267,12 @@ class game implements game_interface{
               choice += " kill assassin";
             }
             let lst = choice.split(" ");
+            //DEBUG:
+            lst = ["fairy"]
+            this.can_swing  = true;
+            this.can_repel = true;
+            this.can_fireball  = true;
+            //END DEBUG
             this.item_tasks[this.sort[i]] =lst[Math.floor(Math.random() * lst.length)]
         }
     } ; 
@@ -582,9 +586,9 @@ class game implements game_interface{
         return [];
     }
     handle_escort(){
-        if(this.escort_points.length > 0){
+        if(this.escort_points.length > 0 && dist(this.player, this.escort_pos) < 500){
             
-        // move the escorted person 
+        // move the escorted person , only if the player is nearby
             let next_point = this.escort_points[this.escort_next_point];
             this.escort_pos = moveTo(this.escort_pos, next_point, this.escort_speed) as point;
             if(dist(this.escort_pos, next_point) < 1){

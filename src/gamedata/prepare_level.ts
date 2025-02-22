@@ -82,7 +82,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
         g.setup_chase(1200, 1200);
         g.player = [600, 600]
         base_fairy(g, 600, 600);
-        g.time_target = Math.floor(3000 + 2000*ratio);
+        g.time_target = Math.floor(1000 + 500*ratio);
         g.tick_fn = function(g){
             if(g.time_target == undefined || g.time >= g.time_target){
                 return "victory";
@@ -181,14 +181,14 @@ export function prepare_level(g : game, choice : string, sort_index : number){
                         lunge_monster(m);
                         m.attrib["lunge duration"] = 15 + ratio * 8;
                         m.attrib["lunge speed"] = 8 + 2*ratio;
-                        m.name = "lunge"
+                        m.name += " lunge"
                     } else if (Math.random() < 0.2 + ratio){
                         if(Math.random() < 0.5){
                             laser_monster(m);
-                            m.name = "laser";
+                            m.name += " laser";
                         } else {
                             shoot_bullets(m);
-                            m.name = "shoot";
+                            m.name += " shoot";
                         }
                     } 
                     if(choice == "assassin" && m.name != "target") {

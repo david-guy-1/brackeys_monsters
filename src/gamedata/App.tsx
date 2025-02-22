@@ -91,7 +91,7 @@ function App() {
     return <>asdsasd</>
   }
 
-  let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0]}; 
+  let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0], walls:[]}; 
   
   events["mousemove a"] = [move_canvas, null]
   events["click a"] = [click_fn, null]
@@ -143,14 +143,15 @@ function App() {
         }
         data.g = g;
         setGameData(data);
-        setMode(["game", mode[1], mode[2]]);
+        setMode(["game", mode[1], choice]);
       }
     }
   }
   else if (mode[0] == "game"){
       // set up game
-      data.prop_fns["victory"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You win!"; setTimeout(() =>transition(["win", mode[1],mode[2]]), 1000)}};
-      data.prop_fns["defeat"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You lose!"; setTimeout(() =>transition(["lose", mode[1], mode[2]]), 1000)}};
+      let delay = mode[2] == "potions" || mode[2] == "maze" ? 100 : 1000
+      data.prop_fns["victory"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You win!"; setTimeout(() =>transition(["win", mode[1],mode[2]]), delay)}};
+      data.prop_fns["defeat"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You lose!"; setTimeout(() =>transition(["lose", mode[1], mode[2]]), delay)}};
       return <GameDisplay data={data} globalStore={store}/>
       // register event listener;
   }else if (mode == "test"){

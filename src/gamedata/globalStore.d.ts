@@ -8,6 +8,7 @@ type globalStore_type = {
     victory_conditions ?: victory_condition[];
     maze_msg ?: string
     flag_msg ?: string
+    walls:draw_command[][]
 }
 
 // display modes (in App)

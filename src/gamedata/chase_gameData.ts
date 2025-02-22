@@ -35,7 +35,7 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
     // x -> x - scroll  
     if(canvas === "main_canvas main"){
         output.push(d_image('images/person.png', g.player))
-        output = output.concat(draw_all(g));
+        output = output.concat(draw_all(g,globalStore));
     }
     output = output.map(x => displace_command(x, lincomb(1, [0,0], -1, scroll) as point));
     //arrow
