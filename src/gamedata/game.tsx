@@ -5,10 +5,10 @@ import { rotate_command, scale_command } from "../rotation";
 import { d_image } from "../canvasDrawing";
 import { dag } from "../dag";
 import { canvas_size, min_town_dist, player_speed } from "./constants";
+import files from "./database.json";
 
 
 type attack_type =  repel_spell | fireball_spell | "swing"
-
 
 
 // attribs have "this" = the monster, and take values  (game : game, type :attack_type) 
@@ -205,7 +205,8 @@ class game implements game_interface{
     can_swing : boolean = false;
     can_repel : boolean = false;
     can_fireball : boolean = false;
-
+    images : string[] = [];
+    item_names : string[] = [];
     // objective info
     kill_target : number | undefined = undefined;
     time_target : number | undefined = undefined;
@@ -213,7 +214,7 @@ class game implements game_interface{
     constructor(seed : string, n_vertices : number){
         this.seed = seed;  
         this.graph = new dag(_.range(n_vertices).map(x => x.toString()), []);  
-        for(let i=0; i<2*n_vertices; i++){
+        for(let i=0; i<2*n_vertices || this.graph.get_exposed_vertices(new Set()).size >= 6; i++){
             try {
                 this.graph.add_edge(Math.floor(Math.random() * n_vertices).toString(), Math.floor(Math.random() * n_vertices).toString());
                 this.graph.add_edge(i.toString(), Math.floor(Math.random() * n_vertices).toString());
@@ -224,7 +225,7 @@ class game implements game_interface{
         }
         let exposed_vertices = this.graph.get_exposed_vertices(new Set()); 
         while(true){
-            let n_towns = Math.ceil(n_vertices/3);
+            let n_towns = Math.ceil(n_vertices/4);
             this.towns = {}; 
             for (let i=0 ;i<n_towns; i++){
                 this.towns[i.toString()] = new Set(); 
@@ -239,7 +240,7 @@ class game implements game_interface{
                 this.towns[chosen_town.toString()].add(i.toString());
                 
             }
-            if(_.every(Object.values(this.towns).map(x => x.size != 0))){
+            if(_.every(Object.values(this.towns).map(x => x.size >= 2))){
                 break;
             }
         }
@@ -268,13 +269,17 @@ class game implements game_interface{
             }
             let lst = choice.split(" ");
             //DEBUG:
-            lst = ["potions"]
-            this.can_swing  = true;
-            this.can_repel = true;
-            this.can_fireball  = true;
+            //lst = ["fastwin"]
+            //this.can_swing  = true;
+            //this.can_repel = true;
+            //this.can_fireball  = true;
             //END DEBUG
             this.item_tasks[this.sort[i]] =lst[Math.floor(Math.random() * lst.length)]
         }
+        // images
+        let s = _.shuffle(Object.values(files[1]));
+        this.item_names = s.map(x => x.name);
+        this.images = s.map(x => x.image);
     } ; 
     clear(){
         this.time = 0; 

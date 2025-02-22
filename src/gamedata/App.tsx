@@ -24,13 +24,13 @@ function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
   }
 }
 function click_fn(e : MouseEvent, g : game, store : globalStore_type ){
-  if(g.mode == "potions"){
+  if(g.mode == "potions" && g.time > 5){
     // clicked on a potion
     let start_coord = lincomb(1, potion_start, -0.5, [potion_size,potion_size]) as point;
     let index = cell_index(start_coord, potion_size, potion_size, potions_per_row, e.offsetX, e.offsetY);
     if(index != undefined){
       let potion = g.potions[index[2]];
-      if(g.already_put.indexOf(potion) == -1){
+      if(potion != undefined && g.already_put.indexOf(potion) == -1){
         store.potion_anim_state = {color : g.potions[index[2]], "place" : [cauldron_pos[0]+150, 100]}
       }
     }
@@ -156,6 +156,7 @@ function App() {
         }
         data.g = g;
         setGameData(data);
+        //g.tick_fn =() => "victory"; // DEBUG
         setMode(["game", mode[1], choice]);
       }
     }
@@ -191,9 +192,9 @@ function App() {
       message = "You can now cast fireballs! (press W)"
     }
 
-    return <>You win! You get {mode[1]}<br />{message}
+    return <><img src={"images/bgwin.png"} style={{position:"absolute",zIndex:-1,top:0,left:0}}/><div style={{position:"absolute",top:40,left:40}}>You win! You get <img src={"base_items/items/"+g.images[parseInt(mode[1])]}/> {g.item_names[parseInt(mode[1])]}<br />{message}
     <br />
-    <button onClick={()=>transition("map")}> Go back</button></>
+    <button onClick={()=>transition("map")}> Go back</button></div></>
   }
   else if(mode[0] == "lose"){
     return <>Oh no! Something went wrong! Remember: Nothing can go wrong!<br />

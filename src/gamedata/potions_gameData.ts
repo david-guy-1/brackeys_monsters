@@ -64,7 +64,7 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
         output.push(add_com(d_text(rule_str, 10, 23 * i+30), {size:15, color : matches[i] ? "white" : "red"}));
     }
     // already added:
-    output.push(add_com(d_text(g.already_put.map(x => g.potions.indexOf(x) + 1).join(","), cauldron_pos[0] + 250, 400), {size:20, color : "black"}));
+    output.push(add_com(d_text(g.already_put.map(x => g.potions.indexOf(x) + 1).join(","), cauldron_pos[0] + 250, 500), {size:20, color : "black"}));
     return [output,true];
     
 }

@@ -120,7 +120,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
     }
 
     if(choice == "potions"){
-        g.setup_potions(12 + Math.floor(ratio * 10));
+        g.setup_potions(5 + Math.floor(ratio * 20));
         g.tick_fn = function(g){
             if(_.every(g.check_potions())){
                 return "victory";

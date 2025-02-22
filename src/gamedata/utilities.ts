@@ -132,7 +132,7 @@ export function draw_coins(g : game){
     let output : draw_command[] = [];
     for(let [i, coin] of g.coin_points.entries()) {
         if(!g.collected[i]){
-            output.push(d_image("images/coin.png", coin));
+            output.push(d_image("images/coin.png", lincomb(1, coin, -1, [20,20]) as point));
         }
     }
     return output;

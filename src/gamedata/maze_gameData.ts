@@ -18,7 +18,7 @@ export let display : display_type = {
     ["down", [50,100,50,50], "down"], ["right", [100,100,50,50], "right"], ["restart", [0,160,150,50], "restart"]],
     "canvas" : [["main_canvas a main",[200,0,600,600]]],
     "image" : [["images/bg3.png",false, 0,0]],
-    "text":[] 
+    "text":[["WASD to move", 10, 300, {}], ["Get to bottom right", 10, 340, {}]] 
 }
 
 function assert_mode(g : game){
