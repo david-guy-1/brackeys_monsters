@@ -37,7 +37,7 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
 
             let point = [30*x+10, 30*y+10];
             if(tree){
-                output.push(d_image("images/tree.png", point));
+                output.push(d_image("images/tree_maze.png", point));
             } 
             if(x == g.player[0] && y == g.player[1]){
                 //draw the player there 

@@ -31,7 +31,6 @@ export function get_draw_commands(m : monster): draw_command[]{
     if(m.name.indexOf("bullet") != -1){
         lst.push(add_com(d_circle(m.position, 3), {"color":"red", "fill":true}));
     }
-
     if(lst.length == 0){
         throw "no image found" + m.name;
     }
@@ -116,16 +115,16 @@ export function draw_fireball_spells(g : game){
 
 export function draw_swing(g : game, globalStore : globalStore_type){
     if(g.swing != undefined){
-        let d = lincomb(1, globalStore.mouse_pos, -1, globalStore.player_pos); 
-        return [displace_command(rotate_command(scale_command(canonical_swing,[0,0], 110/g.swing.size,110/g.swing.size) , [0,0], g.swing.angle), lincomb(1, g.player,1, [d[0] < 0 ? -22 : 22, -23] ) as point)];
+        
+        return [displace_command(rotate_command(scale_command(canonical_swing,[0,0], 110/g.swing.size,110/g.swing.size) , [0,0], g.swing.angle), lincomb(1, g.player,1, g.swing.offset) as point)];
     } else {
         return []
     }
 }
 export function draw_trees(g : game){
     let output : draw_command[] = [];
-    for(let tree of g.trees) {
-        output.push(d_image("images/tree.png", tree));
+    for(let [i,tree] of g.trees.entries()) {
+        output.push(d_image(`trees/${i%5}resized.png`, tree));
     }
     return output; 
 }

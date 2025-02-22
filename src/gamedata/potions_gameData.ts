@@ -12,6 +12,7 @@ import {explode_anim, coin_anim, potion_anim} from "./animations";
 import game from "./game";
 import { lincomb, moveTo } from "../lines";
 import { cauldron_pos, player_speed, potion_size, potion_start, potions_per_row } from "./constants";
+import { displace_command } from "../rotation";
 
 export let display : display_type = {
     "button" : [["undo", [50,50,50,50], "undo"],["reset", [50,100,50,50], "reset"]],
@@ -26,23 +27,24 @@ function assert_mode(g : game){
     }
 }
 
+let potions : draw_command[] = [{"type":"drawBezierShape","x":-6.25,"y":-21.25,"curves":[[-6.75,-15.5,-7,-9.75,-13,-8],[-17.75,-5.75,-20.25,0.25,-18.25,4.75],[-12,10.75,-4.25,11.75,10.75,10.25],[17,8.75,20.5,0.25,18,-6.25],[15,-9,8.75,-10.75,7,-11],[6,-13.5,5.75,-19,5.25,-21.75]],"color":"#cccccc"},{"type":"drawBezierShape","x":-8,"y":-7.25,"curves":[[-12,-6,-15.5,-2.5,-13.75,2],[-10.25,6,-3.75,7.75,3,7.75],[10.75,6.25,16,3.75,15.25,-3.25],[12.75,-6.25,7,-7.5,-1.5,-7.5]],"color":"red"}];
+
+
 export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_type , events : any[] , canvas : string){
     assert_mode(g);
     let output : draw_command[] = []; 
     // draw potions on table
-    for(let i = 0 ; i < g.potions.length; i++){
+    for(let [i, potion] of g.potions.entries()){
         let [x,y] = lincomb(1, potion_start, potion_size, [i%potions_per_row , Math.floor(i/potions_per_row)]);
         if(g.already_put.indexOf(g.potions[i]) == -1 && globalStore.selected_potion != i){ 
-            output.push(add_com(d_circle(x,y,potion_size/2 - 4), {"color":g.potions[i], fill:true}));
+            let cmds = JSON.parse(JSON.stringify(potions)) as drawBezierShape_command[]; 
+            cmds = cmds.map(a => displace_command(a, [x,y])) as drawBezierShape_command[];
+            cmds[1].color = potion;
+            output = output.concat(cmds);
             // number
             output.push(add_com(d_text((i+1).toString(), x-potion_size*0.25, y + potion_size*0.25), {color:"black"}));
         }
 
-    }
-    // draw selected potion
-    if(globalStore.selected_potion != undefined){
-        let [x,y] = globalStore.mouse_pos;
-        output.push(add_com(d_circle(x,y,potion_size/2 - 4), {"color":g.potions[globalStore.selected_potion], fill:true}));
     }
     //draw cauldron
     output.push(d_image("images/cauldron.png", cauldron_pos));

@@ -99,7 +99,9 @@ export function wanderer(g : game, x : number, y : number, speed : number){
 // make the monster pursue the player (possibly with an offset) 
 // attrib: uses angle and offset, must have speed
 function pursue_tick(m : monster , g:game){
-    let target = lincomb(1, lincomb(1,m.attrib["escort flag"]  ? (g.fairies.length > 0 ? g.fairies[0].position : g.escort_pos ):  g.player ,1 ,m.attrib["offset"]) , -1, m.position) as point; 
+    let target_pt = lincomb(1, m.attrib["escort flag"]  ? (g.fairies.length > 0 ? g.fairies[0].position : g.escort_pos ):  g.player, 1, m.attrib["offset"]);
+
+    let target = lincomb(1, target_pt , -1, m.position) as point; 
     let angle = m.attrib["angle"]
     let cross_prod  = cross([Math.cos(angle), Math.sin(angle), 0], [target[0], target[1], 0])[2]
     if(cross_prod > 0){
@@ -108,7 +110,12 @@ function pursue_tick(m : monster , g:game){
         angle -= 0.01
     }
     m.attrib["angle"] = angle
-    let move_dest  = lincomb(1,m.position, m.attrib["speed"], [Math.cos(m.attrib["angle"]),Math.sin(m.attrib["angle"])]) as point;
+    let speed = m.attrib["speed"];
+    if(dist(m.position, target_pt) < 7){
+        speed = speed/3;
+        [1,2,3].at.bind.call;
+    }
+    let move_dest  = lincomb(1,m.position, speed,[Math.cos(m.attrib["angle"]),Math.sin(m.attrib["angle"])]) as point;
     if(m.attrib["ghost"]){
         m.position = move_dest;
     } else {

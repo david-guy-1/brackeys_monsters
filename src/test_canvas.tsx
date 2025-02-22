@@ -3,22 +3,29 @@ import { draw } from "./process_draws";
 import { flatten } from "lodash";
 import { add_com, d_bezier, d_circle, drawBezierShape, make_style } from "./canvasDrawing";
 import { displace_command, rotate_command, scale_command } from "./rotation";
-import { lincomb } from "./lines";
+import { lincomb, scalar_multiple } from "./lines";
 
 let commands : draw_command[] = []
 
-let swing : point[] = [[2,378],[22,346],[35,297],[32,249],[31,219],[22,177],[17,151],[8,123],[4,106],[-1,93],[14,109],[25,126],[35,154],[42,178],[47,212],[47,248],[45,292],[44,317],[32,355],[21,373],[12,388],[2,383]]
+let outer : point[] = [[-17,204],[-19,227],[-20,250],[-44,257],[-63,266],[-73,290],[-65,308],[-40,332],[-9,336],[51,330],[76,324],[90,290],[80,264],[68,253],[43,246],[36,245],[32,235],[31,213],[29,202]]
 
-let sword_command = d_bezier(swing, true)[0] as drawBezierShape_command;
-sword_command.color = {"type":"fill_radial", "x0" : -263, "y0" : 245, "r0" : 1, "x1" : -263, "y1" : 245, "r1" : 317, colorstops : [[0.93, "#cccccc"], [1, "#333333"]] };
+let inner : point[]= [[-24,260],[-40,265],[-54,279],[-47,297],[-33,313],[-7,320],[20,320],[51,314],[72,304],[69,276],[59,264],[36,259],[2,259]]
 
-sword_command = scale_command(displace_command(sword_command, [-2, -378]),[0,0], 100/269, 100/269) as drawBezierShape_command
-sword_command = rotate_command(sword_command, [0,0], Math.PI/2) as drawBezierShape_command;
-commands.push(sword_command)
+let center = [8,289];
+let outer_command = d_bezier(outer, true)[0] as drawBezierShape_command;
+outer_command.color = "black"
 
+let inner_command = d_bezier(inner, true)[0] as drawBezierShape_command;
+inner_command.color = "red"
+
+commands = [outer_command, inner_command];
+
+commands = commands.map(x => displace_command(x, scalar_multiple(-1, center) as point));
+
+commands = commands.map(x => scale_command(x, [0,0], 0.25, 0.25));
 // boilerplate 
 
-//console.log(JSON.stringify(commands[0]));
+console.log(JSON.stringify(commands));
 commands = commands.map(x => displace_command(x, [300,300]));
 
 function test_canvas(){

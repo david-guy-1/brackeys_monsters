@@ -92,6 +92,7 @@ function App() {
   const [g, setG] = useState<game | undefined>(undefined);
   const [mode, setMode] = useState<exp_modes >("menu");
   const [transitioning, setTransitioning] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [data, setGameData] = useState<gamedata>(clone_gamedata(chase_obj)); 
   function transition(s : exp_modes){
     setTransitioning(true);
@@ -111,11 +112,12 @@ function App() {
     return <> asdaakjd</>
   }
   if(mode == "menu"){
-      let image_files = ['background.png', 'bg2.png', 'bg3.png', 'bg4.png', 'bg5.png', 'cauldron.png', 'closed_town.png', 'coin.png', 'escorted.png', 'monster.png', 'open_town.png', 'person.png', 'player.png', 'player_maze.png', 'roaming_monster.png', 'seeing_monster.png', 'targeted_monster.png', 'thingy.png', 'tree.png'];
+      let image_files =['images/background.png', 'images/bg2.png', 'images/bg3.png', 'images/bg4.png', 'images/bg5.png', 'images/bg6.png', 'images/cauldron.png', 'images/closed_town.png', 'images/coin.png', 'images/escorted.png', 'images/fairy.png', 'images/open_town.png', 'images/player_maze.png', 'images/portal.png', 'images/tree_maze.png', 'monsters/gun.png', 'monsters/gun2.png', 'monsters/laser.png', 'monsters/laser2.png', 'monsters/lunge.png', 'monsters/pursuit.png', 'monsters/pursuit2.png', 'monsters/wander.png', 'monsters/wander2.png', 'player/arm down.png', 'player/arm down2.png', 'player/arm up.png', 'player/arm up2.png', 'player/person.png', 'player/person2.png', 'player/personb.png', 'player/personb2.png', 'trees/0.png', 'trees/0resized.png', 'trees/1.png', 'trees/1resized.png', 'trees/2.png', 'trees/2resized.png', 'trees/3.png', 'trees/3resized.png', 'trees/4.png', 'trees/4resized.png']
 
-      let promises = Promise.allSettled(image_files.map(x => loadImage("images/" + x)))
-    
-      return <button onClick={() => {promises.then(() =>{ setG(new game("a", 50)); setMode("map");})}}>Click to start</button>;
+      let promises = Promise.allSettled(image_files.map(x => loadImage( x)))
+      
+      promises.then(() => setLoading(false)); 
+      return  loading ? <>"loading"</> : <button onClick={() => {promises.then(() =>{ setG(new game("a", 50)); setMode("map");})}}>Click to start</button>;
   }
   else if (mode == "map"){
     if(g){

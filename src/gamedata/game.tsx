@@ -1,4 +1,4 @@
-import _, { countBy, flatten } from "lodash";
+import _, { countBy, flatten, shuffle } from "lodash";
 import { game_interface, point } from "../interfaces";
 import { angle_between, bfs, dist, doLinesIntersect, dot, getIntersection, len, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointClosestToSegment, pointInsidePolygon, pointInsideRectangleWH, pointToCoefficients, rescale, vector_angle } from "../lines";
 import { rotate_command, scale_command } from "../rotation";
@@ -268,7 +268,7 @@ class game implements game_interface{
             }
             let lst = choice.split(" ");
             //DEBUG:
-            lst = ["fairy"]
+            lst = ["potions"]
             this.can_swing  = true;
             this.can_repel = true;
             this.can_fireball  = true;
@@ -381,11 +381,19 @@ class game implements game_interface{
         
 
         // generate rules to constrain potions
-        while(this.rules.length < 12){
+        while(this.rules.length < 18){
             let choice :  "first" | "before"  | "last"  = _.sample(["first", "before", "last",]); 
             // choose a potion to constrain 
-            let index = Math.floor(Math.random() * num_potions)
+            let index = 0;
+            if(this.rules.length < this.potions.length){
+                index = this.rules.length;
+            } else {
+                index = Math.floor(Math.random() * num_potions)
+            }
             let constrained_potion = this.potions[index];
+            if(constrained_potion == undefined){
+                throw "constrained is undefined";
+            }
             if(choice == "first"){
                 this.rules.push({type:"first", x : constrained_potion, y : Math.min(num_potions, Math.ceil((index +0.1)* (1.2 + Math.random() * 0.3)))}); 
             }
@@ -404,6 +412,7 @@ class game implements game_interface{
                 }
             }
         }
+        this.rules = _.shuffle(this.rules)
         this.already_put = this.potions;
         if(!_.every(this.check_potions())){
             throw "failure to generate";
