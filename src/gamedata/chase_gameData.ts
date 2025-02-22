@@ -63,6 +63,14 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
         output.push(d_text(`${g.time} / ${g.time_target}`, 20, 45));
     }
     output.push(d_text(`${player_max_hp- g.player_hits} / ${player_max_hp}`, 20, 70));
+    
+    let position = 100
+    for(let [string, time] of globalStore.display_contents){
+        if(g.time < time){
+            output.push(d_text(string, 20, position));
+            position + 30
+        }
+    }
     return [output,true];
 }
 

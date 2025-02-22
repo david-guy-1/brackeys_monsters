@@ -141,7 +141,7 @@ export class fireball_spell {
 
 
 
-type swing_type = {"angle" : number, "velocity" : number, size : number, "lifespan" : number};
+type swing_type = {"angle" : number, "velocity" : number, size : number, "lifespan" : number, offset : point};
 class game implements game_interface{
     //fundamentals 
     dims : point = [0,0]; // width, height
@@ -199,9 +199,9 @@ class game implements game_interface{
     // tick stuff - returns if the player has won or lost
     tick_fn ?: (g : game) => "victory" | "defeat" | undefined; 
 
-    last_swing : number = 0;
-    last_repel : number = 0;
-    last_fireball : number = 0;
+    last_swing : number = Number.NEGATIVE_INFINITY;
+    last_repel : number = Number.NEGATIVE_INFINITY;
+    last_fireball : number = Number.NEGATIVE_INFINITY;
     can_swing : boolean = false;
     can_repel : boolean = false;
     can_fireball : boolean = false;
@@ -310,9 +310,9 @@ class game implements game_interface{
         this.kill_target  = undefined;
         this.time_target  = undefined;
 
-        this.last_swing = 0;
-        this.last_repel = 0;
-        this.last_fireball = 0;
+        this.last_swing = Number.NEGATIVE_INFINITY;
+        this.last_repel = Number.NEGATIVE_INFINITY;
+        this.last_fireball = Number.NEGATIVE_INFINITY;
 
         // DO NOT CLEAR DAG 
     }
@@ -499,12 +499,12 @@ class game implements game_interface{
         this.fireball_spells.push(new fireball_spell(this.player, v, width, lifespan));
         
     }
-    start_swing(size : number, angle : number, lifespan : number, velocity : number){
+    start_swing(size : number, angle : number, lifespan : number, velocity : number, offset : point){
         // angle is CENTER of swing
         // rescale(0, lifespan, start_angle, start_angle + velocity * lifespan, lifespan/2 ) = angle
         this.last_swing = this.time;
         let start_angle = angle - velocity * lifespan/2; 
-        this.swing = {"angle" : start_angle, "velocity" : velocity, "lifespan" : lifespan, "size" : size}
+        this.swing = {"angle" : start_angle, "velocity" : velocity, "lifespan" : lifespan, "size" : size, offset : offset}
     }
     seeing_monster_see_player(monster : monster) : boolean{ //returns if the monster sees the player
         if( monster.vision && dist(this.player, monster.position) < monster.vision.vision_range && (dist(this.player, monster.position) == 0 || vector_angle(lincomb(1, this.player, -1, monster.position) as point, [Math.cos(monster.vision.direction), Math.sin(monster.vision.direction)]) <= monster.vision.vision_arc)){
@@ -538,7 +538,7 @@ class game implements game_interface{
         if(this.swing == undefined){
             return false;
         }
-        let v = lincomb(1, point, -1, this.player); 
+        let v = lincomb(1, point, -1, lincomb(1, this.player, 1, this.swing.offset)); 
         let distance = len(v);
         if(distance == 0){
             return true;

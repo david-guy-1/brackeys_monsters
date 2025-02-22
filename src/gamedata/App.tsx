@@ -59,16 +59,27 @@ function keydown(e : KeyboardEvent, g : game, store : globalStore_type ){
     if(e.key.toLowerCase() == "q"){
       if(g.can_repel && g.time - g.last_repel >= 60){
         g.cast_repel_spell(direction_vector[0], direction_vector[1], 60,84);
+        store.repel_cast = true;
+      } else if(store.display_contents.length == 0){
+        store.display_contents.push(["Attack on cooldown", g.time + 60]);
       }
     }
     if(e.key.toLowerCase() == "w"){
       if(g.can_fireball && g.time - g.last_fireball >= 60){
         g.cast_fireball_spell(direction_vector[0], direction_vector[1], 60,84);
+        store.fireball_cast = true;
+      }else if(store.display_contents.length == 0){
+        store.display_contents.push(["Attack on cooldown", g.time + 60]);
       }
     }
     if(e.key.toLowerCase() == "e"){
+      let d = lincomb(1, store.mouse_pos, -1, store.player_pos); 
+      let offset : point = [d[0] < 0 ? -22 : 22, -23];
       if(g.can_swing && g.time - g.last_swing >= 30){
-        g.start_swing(100, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2);
+        g.start_swing(100, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2, offset);
+        store.swing_cast = true;
+      }else if(store.display_contents.length == 0){
+        store.display_contents.push(["Attack on cooldown", g.time + 60]);
       }
     }  
   }
@@ -91,7 +102,7 @@ function App() {
     return <>asdsasd</>
   }
 
-  let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0], walls:[]}; 
+  let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0], walls:[], display_contents : [], repel_cast:false,fireball_cast:false,swing_cast:false}; 
   
   events["mousemove a"] = [move_canvas, null]
   events["click a"] = [click_fn, null]

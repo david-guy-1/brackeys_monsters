@@ -8,7 +8,12 @@ type globalStore_type = {
     victory_conditions ?: victory_condition[];
     maze_msg ?: string
     flag_msg ?: string
-    walls:draw_command[][]
+    display_contents : [string, number][] // text to display if time < number
+    walls:draw_command[][];
+    //flags to play sound when attack used
+    repel_cast : boolean;
+    fireball_cast : boolean;
+    swing_cast : boolean;
 }
 
 // display modes (in App)
