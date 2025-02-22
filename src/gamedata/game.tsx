@@ -1,10 +1,10 @@
-import _, { flatten } from "lodash";
+import _, { countBy, flatten } from "lodash";
 import { game_interface, point } from "../interfaces";
 import { angle_between, bfs, dist, doLinesIntersect, dot, getIntersection, len, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointClosestToSegment, pointInsidePolygon, pointInsideRectangleWH, pointToCoefficients, rescale, vector_angle } from "../lines";
 import { rotate_command, scale_command } from "../rotation";
 import { d_image } from "../canvasDrawing";
 import { dag } from "../dag";
-import { canvas_size, min_town_dist } from "./constants";
+import { canvas_size, min_town_dist, player_speed } from "./constants";
 
 
 type attack_type =  repel_spell | fireball_spell | "swing"
@@ -51,7 +51,7 @@ export class monster {
     name : string
     age : number = 0;
     active : boolean = true; 
-    
+    dont_count : boolean = false ; // if this monster is inactive , don't count it as a kill
     see_player : (g : game) => void;
     should_check : (g : game, type : attack_type ) => boolean; // hit by player attack
     hit : (g : game, type : attack_type) => void; // hit by player attack
@@ -200,6 +200,10 @@ class game implements game_interface{
     // tick stuff - returns if the player has won or lost
     tick_fn ?: (g : game) => "victory" | "defeat" | undefined; 
 
+    // objective info
+    kill_target : number | undefined = undefined;
+    time_target : number | undefined = undefined;
+
     constructor(seed : string, n_vertices : number){
         this.seed = seed;  
         this.graph = new dag(_.range(n_vertices).map(x => x.toString()), []);  
@@ -257,6 +261,10 @@ class game implements game_interface{
         this.exit = undefined;
 
         this.escort_points = [];
+        this.escort_pos = [0,0];
+        this.escort_speed = 0;
+        this.escort_next_point = 0; 
+
         this.coin_points = [];
         this.collected = []; 
 
@@ -266,6 +274,9 @@ class game implements game_interface{
         this.already_put = []; 
         
         this.tick_fn = undefined;
+
+        this.kill_target  = undefined;
+        this.time_target  = undefined;
         // DO NOT CLEAR DAG
     }
     setup_chase(w : number, h : number){
@@ -407,9 +418,16 @@ class game implements game_interface{
 
     tick(){
         this.time++;
+        // consistency checks
+        if(this.coin_points.length != this.collected.length){
+            this.collected = [];
+            for(let i=0; i < this.collected.length; i++){
+                this.collected.push(false);
+            }
+        }
         // default actions, for any "moving" stuff
         if(this.move_flag){
-            this.move_wall(this.player, this.target,15) ; 
+            this.move_wall(this.player, this.target,player_speed) ; 
             this.player = moveIntoRectangleWH(this.player, [0,0], this.dims) as point;   
             this.get_monsters().forEach(x => {x.tick(this); x.position = moveIntoRectangleWH(x.position, [0,0], this.dims) as point});
             this.fairies.forEach(x => {x.tick(this); x.position = moveIntoRectangleWH(x.position, [0,0], this.dims) as point});
@@ -530,6 +548,7 @@ class game implements game_interface{
     }
     handle_escort(){
         if(this.escort_points.length > 0){
+            console.log("got here");
         // move the escorted person 
             let next_point = this.escort_points[this.escort_next_point];
             this.escort_pos = moveTo(this.escort_pos, next_point, this.escort_speed) as point;
@@ -614,14 +633,35 @@ class game implements game_interface{
         this.maze_chops = this.maze_chops_init;
         this.player = [0,0];
     }
-
+    move_maze(next_v : point){
+        let g = this;
+        let next_pos = lincomb(1, g.player, 1, next_v) as point;
+        if(!pointInsideRectangleWH(next_pos, -0.01,-0.01,g.dims)){
+            console.log("oob");
+            return "bounds";
+        }
+        let tree = g.is_tree(next_pos[0],next_pos[1]);
+        if(tree) {
+            if(g.maze_chops == 0){
+                return "chops";
+            } 
+            g.coin_points.push([...next_pos] as point);
+            g.maze_chops--;
+            g.player = next_pos;
+        } else {
+            g.player = next_pos;
+        }
+        return "good";
+    }
     // looks for "deleted" in name
     clear_deleted_monsters(){
         for(let lst of [this.monsters, this.monsters, this.monsters, this.monsters]){
             for(let i=lst.length-1; i>= 0; i--){
                 if(lst[i].active == false){
                     lst.splice(i,1);
-                    this.monsters_killed ++; 
+                    if(lst[i].dont_count == false){
+                        this.monsters_killed ++; 
+                    }
                 }
             }
         }

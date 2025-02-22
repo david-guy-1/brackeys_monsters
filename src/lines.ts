@@ -98,6 +98,14 @@ export function lerp(start : number[], end : number[], t : number) : number[] {
 
 
 // av + bw
+export function scalar_multiple(a : number, v : number[] ) : number[]  {
+	let x : number[] = [];
+	for(let i=0; i<v.length; i++){
+		x[i] = a * v[i];
+	}
+	return x; 
+}
+
 export function lincomb(a : number, v : number[], b : number, w : number[] ) : number[]  {
 	if(v.length != w.length){
 		throw "lincomb with different lengths"
@@ -108,6 +116,10 @@ export function lincomb(a : number, v : number[], b : number, w : number[] ) : n
 	}
 	return x; 
 }
+export function unit_vector(angle : number) : point{
+	return [Math.cos(angle), Math.sin(angle)]
+}
+
 
 export function num_diffs<T>(x : T[], y : T[]) : number{
 	let s= 0;
@@ -150,10 +162,11 @@ export function moveTo(v: number[], w : number[], dist_ : number) : number[]{
 	}
 }
 
+
 export function dist(v : number[], w : number[]) : number {
 	noNaN(arguments as any as any[][]);
 	if(v.length != w.length){
-		throw "move with uneven lengths"; 
+		throw "dist with uneven lengths"; 
 	}
 	let s = 0;
 	for(let i=0; i < v.length; i++){
@@ -161,6 +174,18 @@ export function dist(v : number[], w : number[]) : number {
 	}	
 	return Math.sqrt(s);
 }
+export function taxicab_dist(v  : number[], w : number[]){
+	if(v.length != w.length){
+		throw "taxicab_dist with uneven lengths"; 
+	}
+	let s = 0;
+	for(let i=0; i<v.length; i++){
+		s+=Math.abs(v[i] - w[i])
+	}
+	return s;
+
+}
+
 
 export function cross(a : number[], b : number[]){
 	if(a.length !== 3 || 3 !== b.length){
@@ -570,6 +595,25 @@ export function pointClosestToSegment(...args : (number | number[])[] ) : point3
 	between(intersectionPoint[1]  , p1y, p2y) &&
 	between(intersectionPoint[1]  , q1y, q2y));
 }
+
+// walls are given px, py, qx, qy
+// move point towards target, stopping epsilon units right before the first wall 
+export function move_wall(point : point ,walls :[number,number,number,number][], target : point, amt? : number, epsilon : number = 0.001) : point{
+        if(amt != undefined){
+            target = moveTo(point,target,amt) as point;
+        }
+        for(let w of walls){
+            if(doLinesIntersect(point, target, w)){
+                let intersection = getIntersection(pointToCoefficients(point, target), pointToCoefficients(w));
+                // target = intersection + (start - intersection) normalized to 0.01
+                target = lincomb(1, intersection, 1, normalize(lincomb(1, point, -1, intersection), epsilon)) as point; 
+            }
+        }
+        return target
+}
+	
+	
+	
 // doLinesIntersect(412, 666, 620 , 434, 689, 675, 421, 514) = true
 // doLinesIntersect(412, 666, 620 , 434, 498 ,480 ,431 ,609 ) = false 
 // doLinesIntersect(100, 100, 200, 100, 100, 200, 200, 200) = false

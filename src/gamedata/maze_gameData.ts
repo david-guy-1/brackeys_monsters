@@ -46,6 +46,14 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
         }
     }
     output.push(d_text(`${g.maze_chops} chops remaining`, 50,canvas_size[1]-10))
+    if(globalStore.maze_msg != "good"){
+        if(globalStore.maze_msg == "chops"){
+            output.push(d_text(`Can't move there - no more chops`, 50,canvas_size[1]-35))
+        }
+        if(globalStore.maze_msg == "bounds"){
+            output.push(d_text(`Can't move there - out of bounds`, 50,canvas_size[1]-35))
+        }
+    }
     return [output,true];
 }
 
@@ -61,18 +69,22 @@ export let sound_fn : sound_fn_type = function(g : game, globalStore : globalSto
 }
 
 export let prop_commands : prop_commands_type = function(g : game,globalStore : globalStore_type, events : any[]){
-    assert_mode(g);
-    if(g.player[0] == g.dims[0]-1 && g.player[1] == g.dims[1]-1){
-        return [["new_game", null]];
+    if(g.tick_fn == undefined){
+        throw "maze without a victory or defeat condition"
     }
-    let output : props_to_run = []; 
-    return output; 
+    let result = g.tick_fn(g);
+    if(result == "victory"){
+        return [["victory", g]];
+    } else if (result == "defeat"){
+        return [["defeat", g]];
+    }
+    return []; 
 }
 
 export let button_click : button_click_type = function(g : game,globalStore : globalStore_type, name : string){
     assert_mode(g);
     
-    let next_v = [0,0]
+    let next_v : point= [0,0]
     switch(name){
         case "up":
             next_v = [0, -1];
@@ -91,24 +103,7 @@ export let button_click : button_click_type = function(g : game,globalStore : gl
             break;
     }
     if("up down left right".split(" ").indexOf(name) != -1){
-        //directional move
-        let next_pos = lincomb(1, g.player, 1, next_v) as point;
-        if(!pointInsideRectangleWH(next_pos, -0.01,-0.01,g.dims)){
-            console.log("oob");
-            return [];
-        }
-        let tree = g.is_tree(next_pos[0],next_pos[1]);
-        if(tree) {
-            if(g.maze_chops == 0){
-                return [];
-            } 
-            g.coin_points.push([...next_pos] as point);
-            g.maze_chops--;
-            g.player = next_pos;
-        } else {
-            g.player = next_pos;
-        }
-        return [];
+        globalStore.maze_msg = g.move_maze(next_v);
     }
     return [];
 

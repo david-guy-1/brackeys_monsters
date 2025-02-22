@@ -6,6 +6,8 @@ type globalStore_type = {
     selected_potion ?: number ;
     potion_anim_state ?: {color : string, place : point} ;
     victory_conditions ?: victory_condition[];
+    maze_msg ?: string
+    flag_msg ?: string
 }
 
 // display modes (in App)

@@ -1,9 +1,10 @@
 // move player to target location  on screen, update last pos 
 
+import _ from "lodash";
 import { add_com, d_image, d_line, d_rect, d_rect2 } from "../canvasDrawing";
-import { dist, flatten, len, lincomb, move_lst , moveIntoRectangleBR, moveIntoRectangleWH, moveTo, num_diffs, rescale } from "../lines";
+import { dist, flatten, len, lincomb, move_lst , moveIntoRectangleBR, moveIntoRectangleWH, moveTo, num_diffs, rescale, taxicab_dist } from "../lines";
 import { displace_command, rotate_command, scale_command } from "../rotation";
-import { mouse_radius, player_box, player_screen_speed } from "./constants";
+import { canvas_size, mouse_radius, player_box, player_screen_speed } from "./constants";
 import game , {get_draw_commands} from "./game";
 
 let canonical_swing : drawBezierShape_command = {"type":"drawBezierShape","x":0,"y":0,"curves":[[11.895910780669144,7.434944237918216,30.111524163568774,12.267657992565054,47.95539033457249,11.152416356877314],[59.10780669144981,10.780669144981406,74.72118959107806,7.43494423791821,84.38661710037174,5.576208178438658],[94.79553903345723,2.230483271375457,101.11524163568772,0.7434944237918152,105.94795539033457,-1.1152416356877415],[100.00000000000001,4.460966542750932,93.68029739776951,8.550185873605935,83.27137546468403,12.267657992565043],[74.34944237918215,14.86988847583642,61.71003717472119,16.728624535315976,48.3271375464684,16.72862453531598],[31.970260223048324,15.985130111524164,22.67657992565056,15.613382899628252,8.550185873605948,11.152416356877323],[1.8587360594795534,7.063197026022304,-3.7174721189591073,3.717472118959108,-1.8587360594795537,2.2762951657013997e-16]],"color":{"type":"fill_radial","x0":49.44237918215611,"y0":-98.51301115241635,"r0":0.37174721189591076,"x1":49.44237918215611,"y1":-98.51301115241635,"r1":117.84386617100371,"colorstops":[[0.93,"#cccccc"],[1,"#333333"]]}};
@@ -31,6 +32,9 @@ export function draw_monsters(g : game){
     // draw all monsters at the position in the game, move them later
     let output : draw_command[] = []; 
     for(let monster of g.monsters){
+        if(taxicab_dist(monster.position, g.player) > 1000){
+            continue;
+        }
         output = output.concat(get_draw_commands(monster));
         if(monster.vision ){
             // draw direction facing
@@ -93,7 +97,6 @@ export function draw_coins(g : game){
 export function draw_walls(g : game){ 
     let output : draw_command[] = [];
     for(let wall of g.walls){
-        console.log(wall);
         output.push(add_com(d_line(flatten(wall)), {width:5, color:"red"}))
     }
     return output;
@@ -126,8 +129,55 @@ export function draw_lasers(g : game){
     }
     return output;
 }
+    // arrow
+export function draw_arrow(g : game){
+    let direction : number | undefined = undefined;
+    // escort
+    if(g.escort_points.length != 0){
+        let d = lincomb(1, g.escort_pos, -1, g.player);
+        direction = Math.atan2(d[1], d[0]);
+    }
+    // exit
+    if(g.exit){
+        let d = lincomb(1, g.exit, -1, g.player);
+        direction = Math.atan2(d[1], d[0]);
+    }
+    // coins
+    if(g.coin_points.length != 0){
+        let valid = _.range(g.coin_points.length).filter(x => g.collected[x] == false)
+        if(valid.length > 0){
+            let min_index = _.minBy(valid, x => dist(g.player, g.coin_points[x]))
+            if(min_index != undefined){
+                let d = lincomb(1, g.coin_points[min_index], -1, g.player); 
+                direction = Math.atan2(d[1], d[0]);
+            }
+        }
+    }
+    //target
+    for(let m of g.monsters){
+        if(m.name.indexOf("target") != -1){
+            let d = lincomb(1, m.position, -1, g.player);
+            direction = Math.atan2(d[1], d[0]);
+            break;
+        }
+    }
+    if(direction != undefined){
+        let command : draw_command= {type:"drawPolygon", color:"black", fill:true, "points_x" : [0,0,37], points_y : [283-289,295-289,0]}
+        command = displace_command(command, [200, 0]);
+        command = rotate_command(command, [0,0], direction)
+        command = displace_command(command, [canvas_size[0]/2, canvas_size[1]/2])
+        return command;
+    }
+}
 export function draw_all(g : game){
     let output : draw_command[] = [];
-    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_fireball_spells(g)).concat(draw_swing(g)).concat(draw_coins(g)).concat(draw_walls(g)).concat(draw_lasers(g));
+    // escort
+    if(g.escort_points.length != 0){
+        output.push(d_image("images/escorted.png", g.escort_pos))
+    }
+
+    
+
+    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_fireball_spells(g)).concat(draw_swing(g)).concat(draw_coins(g)).concat(draw_walls(g)).concat(draw_lasers(g)).concat(draw_fairies(g));
     return output;
 }

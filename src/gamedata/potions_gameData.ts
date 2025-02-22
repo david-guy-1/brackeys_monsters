@@ -86,9 +86,16 @@ export let sound_fn : sound_fn_type = function(g : game, globalStore : globalSto
 
 export let prop_commands : prop_commands_type = function(g : game,globalStore : globalStore_type, events : any[]){
     assert_mode(g);
-    if(_.every(g.check_potions())){
-        return [["new_game", null]];
+    if(g.tick_fn == undefined){
+        throw "potions without a victory or defeat condition"
     }
+    let result = g.tick_fn(g);
+    if(result == "victory"){
+        return [["victory", g]];
+    } else if (result == "defeat"){
+        return [["defeat", g]];
+    }
+
     let output : props_to_run = []; 
     return output; 
 }

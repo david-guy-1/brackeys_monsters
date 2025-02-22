@@ -13,7 +13,8 @@ import { gamedata } from '../interfaces';
 import MainMap from './MainMap';
 import { loadImage } from '../canvasDrawing';
 import Town from './Town';
-import { pursue, vision, wanderer } from './monster_patterns';
+import { laser_monster, pursue, shoot_bullets, wanderer } from './monster_patterns';
+import { prepare_level } from './prepare_level';
 
 // mousemove
 function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
@@ -40,15 +41,30 @@ function keydown(e : KeyboardEvent, g : game, store : globalStore_type ){
   if(direction_vector[0] == 0 && direction_vector[1] == 0){
     direction_vector = [0,1];
   }
-  if(e.key.toLowerCase() == "q"){
-    g.cast_repel_spell(direction_vector[0], direction_vector[1], 60,84);
-  }
-  if(e.key.toLowerCase() == "w"){
-    g.cast_fireball_spell(direction_vector[0], direction_vector[1], 60,84);
-  }
-  if(e.key.toLowerCase() == "e"){
-    g.start_swing(100, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2);
-    
+  if(g.mode == "maze"){
+    if(e.key.toLowerCase() == "w"){
+      store.maze_msg = g.move_maze([0, -1])
+    }
+    if(e.key.toLowerCase() == "a"){
+      store.maze_msg = g.move_maze([-1,0])
+    }
+    if(e.key.toLowerCase() == "s"){
+      store.maze_msg = g.move_maze([0, 1])
+    }
+    if(e.key.toLowerCase() == "d"){
+      store.maze_msg = g.move_maze([1, 0])
+    }
+  } else if(g.mode != "potions"){
+    if(e.key.toLowerCase() == "q"){
+      g.cast_repel_spell(direction_vector[0], direction_vector[1], 60,84);
+    }
+    if(e.key.toLowerCase() == "w"){
+      g.cast_fireball_spell(direction_vector[0], direction_vector[1], 60,84);
+    }
+    if(e.key.toLowerCase() == "e"){
+      g.start_swing(100, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2);
+      
+    }  
   }
 }
 
@@ -56,19 +72,26 @@ function App() {
   const [g, setG] = useState<game | undefined>(undefined);
   const [mode, setMode] = useState<exp_modes >("menu");
   const [transitioning, setTransitioning] = useState<boolean>(false);
+  const [data, setGameData] = useState<gamedata>(clone_gamedata(chase_obj));
+
+  console.log([transitioning, mode]);
+  
   function transition(s : exp_modes){
     setTransitioning(true);
     setTimeout(() => {setMode(s); setTransitioning(false)}, 0);
   }
   if(transitioning){
-    return <></>
+    return <>asdsasd</>
   }
   // default store, override it if necessary 
   let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0]}; 
-  const [data, setGameData] = useState<gamedata>(clone_gamedata(chase_obj));
+
   events["mousemove a"] = [move_canvas, null]
   events["click a"] = [click_fn, null]
   events["keydown a"] = [keydown, null];
+  if(transitioning){
+    return <> asdaakjd</>
+  }
   if(mode == "menu"){
       let image_files = ['background.png', 'bg2.png', 'bg3.png', 'bg4.png', 'bg5.png', 'cauldron.png', 'closed_town.png', 'coin.png', 'escorted.png', 'monster.png', 'open_town.png', 'person.png', 'player.png', 'player_maze.png', 'roaming_monster.png', 'seeing_monster.png', 'targeted_monster.png', 'thingy.png', 'tree.png'];
 
@@ -100,20 +123,40 @@ function App() {
       } else { 
         let town = mode[1];
         let sort_index = g?.sort.indexOf(town);
-        let choice = "fetch maze escape potions defend escort kill fairy assassin"
-        g?.setup_chase(2000, 2000);
-        for(let i=0; i< 15; i++){
-          pursue(g, Math.random() * 1, Math.random() * 1, Math.random() * 5 + 1); 
-        }
+        let choice = "fetch maze escape potions escort kill fairy assassin"
+        choice = "assassin"
+        prepare_level(g, choice, sort_index); 
+        /*
+        g?.setup_maze(18,15);
         for(let i=0; i< 1; i++){
-          vision(g, Math.random() * 1, Math.random() * 1, Math.random() * 5 + 1, 100, 0.4); 
+          let m = wanderer(g, Math.random() * 1, Math.random() * 1, Math.random() * 5 + 1); 
+          if(i == 14){
+            laser_monster(m);
+          }
+          if(i == 13){
+            m.vision = {"vision_arc" : 0.4, "vision_range" : 100, "direction" : 0};
+          }
+          if(i == 0){
+            shoot_bullets(m);
+          }
+        }
+        g.escort_points = [[400,400]];
+        for(let i=0 ; i<10; i++){
+          g.escort_points.push([Math.random() * 2000,Math.random() * 2000])
+          g.escort_speed = 7;
         }
         for(let i=0; i<100; i++){
           g.trees.push([Math.random() * 2000,Math.random() * 2000 ])
         }
+          */
         let data = clone_gamedata(chase_obj); 
+        if(choice == "maze"){
+          data = clone_gamedata(maze_obj); 
+        }
+        if(choice == "potions"){
+          data = clone_gamedata(potions_obj); 
+        }
         data.g = g;
-        g.tick_fn = () => {return undefined};
         setGameData(data);
         setMode("game");
       }
@@ -121,8 +164,8 @@ function App() {
   }
   else if (mode == "game"){
       // set up game
-      data.prop_fns["victory"] =  () => transition("map");
-      data.prop_fns["defeat"] =  () => transition("map");
+      data.prop_fns["victory"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You win!"; setTimeout(() =>transition("map"), 1000)}};
+      data.prop_fns["defeat"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You lose!"; setTimeout(() =>transition("map"), 1000)}};
       return <GameDisplay data={data} globalStore={store}/>
       // register event listener;
   }else if (mode == "test"){

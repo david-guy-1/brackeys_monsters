@@ -5,15 +5,15 @@ game, draw_fn, anim_fn, sound_fn, add_event_listeners, button_click, prop_comman
 
 import _ from "lodash";
 import { animation } from "../animations";
-import { d_image } from "../canvasDrawing";
+import { d_image, d_text } from "../canvasDrawing";
 import GameDisplay from "../GameDisplay";
 import { anim_fn_type, button_click_type, display_type, draw_fn_type, gamedata, init_type, point, prop_commands_type, props_to_run, reset_fn_type, sound_fn_type } from "../interfaces";
 import {explode_anim, coin_anim} from "./animations";
 import game from "./game";
 import { dist, lincomb, move_lst, moveTo } from "../lines";
-import { canvas_size, player_speed } from "./constants";
+import { canvas_size, player_max_hp, player_speed } from "./constants";
 import { displace_command } from "../rotation";
-import { draw_all, draw_monsters, draw_repel_spells, draw_trees, move_player_to_point } from "./utilities";
+import { draw_all, draw_arrow, draw_monsters, draw_repel_spells, draw_trees, move_player_to_point } from "./utilities";
 
 export let display : display_type = {
     "button" : [],
@@ -38,6 +38,23 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
         output = output.concat(draw_all(g));
     }
     output = output.map(x => displace_command(x, lincomb(1, [0,0], -1, scroll) as point));
+    //arrow
+    let cmd = draw_arrow(g)
+    if(cmd){
+        output.push(cmd);
+    }
+    //messages
+    if(globalStore.flag_msg != undefined){
+        output.push(d_text(globalStore.flag_msg, 20, 20));
+    }
+    // obj messages
+    if(g.kill_target != undefined){
+        output.push(d_text(`${g.monsters_killed} / ${g.kill_target}`, 20, 45));
+    }
+    if(g.time_target != undefined){
+        output.push(d_text(`${g.time} / ${g.time_target}`, 20, 45));
+    }
+    output.push(d_text(`${player_max_hp- g.player_hits} / ${player_max_hp}`, 20, 70));
     return [output,true];
 }
 
