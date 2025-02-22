@@ -34,7 +34,15 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
     let scroll = lincomb(1, g.player, -1 ,globalStore.player_pos) as point; 
     // x -> x - scroll  
     if(canvas === "main_canvas main"){
-        output.push(d_image('images/person.png', g.player))
+        // draw player
+        let d = lincomb(1, globalStore.mouse_pos, -1, globalStore.player_pos); 
+        // d[0] < 0 -> left, >= 0 -> right
+        output.push(d_image(`player/person${d[0] < 0 ? "" : "2"}.png`, lincomb(1, g.player, -1, [50, 50])))
+        if(g.swing == undefined){
+            output.push(d_image(`player/arm down${d[0] < 0 ? "" : "2"}.png`, lincomb(1, g.player, -1, [50, 50]))) 
+        } else {
+            output.push(d_image(`player/arm up${d[0] < 0 ? "" : "2"}.png`, lincomb(1, g.player, -1, [50, 50]))) 
+        }
         output = output.concat(draw_all(g,globalStore));
     }
     output = output.map(x => displace_command(x, lincomb(1, [0,0], -1, scroll) as point));

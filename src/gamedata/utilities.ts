@@ -114,9 +114,10 @@ export function draw_fireball_spells(g : game){
     return output;
 }
 
-export function draw_swing(g : game){
+export function draw_swing(g : game, globalStore : globalStore_type){
     if(g.swing != undefined){
-        return [displace_command(rotate_command(scale_command(canonical_swing,[0,0], 110/g.swing.size,110/g.swing.size) , [0,0], g.swing.angle), g.player)]
+        let d = lincomb(1, globalStore.mouse_pos, -1, globalStore.player_pos); 
+        return [displace_command(rotate_command(scale_command(canonical_swing,[0,0], 110/g.swing.size,110/g.swing.size) , [0,0], g.swing.angle), lincomb(1, g.player,1, [d[0] < 0 ? -22 : 22, -23] ) as point)];
     } else {
         return []
     }
@@ -156,7 +157,6 @@ export function draw_walls(g : game, drawn_walls:draw_command[][]){
             output = output.concat(commands);
         }
     }
-    console.log(output);
     return output;
 }
 
@@ -239,6 +239,6 @@ export function draw_all(g : game, store : globalStore_type){
 
     
 
-    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_fireball_spells(g)).concat(draw_swing(g)).concat(draw_coins(g)).concat(draw_walls(g,store.walls)).concat(draw_lasers(g)).concat(draw_fairies(g));
+    output = output.concat(draw_trees(g)).concat(draw_monsters(g)).concat(draw_repel_spells(g)).concat(draw_fireball_spells(g)).concat(draw_swing(g, store)).concat(draw_coins(g)).concat(draw_walls(g,store.walls)).concat(draw_lasers(g)).concat(draw_fairies(g));
     return output;
 }
