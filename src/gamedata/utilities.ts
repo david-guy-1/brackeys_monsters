@@ -81,9 +81,13 @@ export function draw_monsters(g : game){
         output = output.concat(get_draw_commands(monster));
         if(monster.vision ){
             // draw direction facing
+            
+            /*
             if(typeof monster.attrib["angle"] == "number"){
                 output.push(d_line(monster.position, lincomb(1, monster.position, 100, [Math.cos(monster.attrib["angle"]),Math.sin(monster.attrib["angle"])])))
             }
+            */
+
             //draw the arc 
         
             let points : point[] = [monster.position]; 

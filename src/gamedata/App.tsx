@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { JSX, useState } from 'react'
 import game, {  repel_spell } from './game';
 
 import { data_obj as chase_obj, fireball_attempt, repel_attempt, swing_attempt  } from './chase_gameData';
@@ -103,7 +103,7 @@ function App() {
       let promises = Promise.allSettled(image_files.map(x => loadImage( x)))
       
       promises.then(() => setLoading(false)); 
-      return  loading ? <>"loading"</> : <button onClick={() => {promises.then(() =>{ setG(new game("a", 5)); setMode("map");})}}>Click to start</button>; // SET NUMBER OF ELEMENTS HERE
+      return  loading ? <>"loading"</> : <button onClick={() => {promises.then(() =>{ setG(new game("a", 25)); setMode("map");})}}>Click to start</button>; // SET NUMBER OF ELEMENTS HERE
   }
   else if (mode == "map"){
     if(g){
@@ -147,9 +147,42 @@ function App() {
         data.g = g;
         setGameData(data);
         //g.tick_fn =() => "victory"; // DEBUG
-        setMode(["game", mode[1], choice]);
+        setMode(["preamble", mode[1], choice]);
       }
     }
+  } else if (mode[0] == "preamble"){
+    let preamble : JSX.Element[] = []; 
+    if(mode[2] == "fetch"){
+      preamble.push(<>I need you to fetch some coins, avoid the monsters.<br /> Follow the black arrow.</>)
+    }
+    if(mode[2] == "maze"){
+      preamble.push(<>Chop a path through this forest of trees.<br /> Get to the bottom right corner. <br /> Use as few chops as possible</>)
+    }
+    if(mode[2] == "escape"){
+      preamble.push(<>Oh no, we're getting ambushed by monsters.<br />I've set up a portal for you. Follow the black arrow and go there.<br />Avoid being seen by monsters</>)
+    }
+    if(mode[2] == "potions"){
+      preamble.push(<>I need your help mixing potions.<br /> Click on the potion to add them to the mix</>)
+    }
+    if(mode[2] == "escort"){
+      preamble.push(<>My daughter wants to explore the forest. Protect her from the monsters<br /> She only moves if you're near her. </>)
+    }
+    
+    if(mode[2] == "fairy"){
+      preamble.push(<>There's a fairy that needs to be protected. Don't let her be harmed<br/>Keep in mind that your attacks will also harm her. Even your repel spell harms her. </>)
+    }
+    
+    if(mode[2] == "kill"){
+      preamble.push(<>Just go and kill a bunch of monsters.  </>)
+    }
+    if(mode[2] == "assassin"){
+      preamble.push(<>There's a specific monster that I want dead. I'll indicate their location with a black arrow<br />All other monsters are immune to your attacks. </>)
+    }
+    return <><img src={"images/bgpreamble.png"} style={{position:"absolute",zIndex:-1,top:0,left:0}}/><div style={{position:"absolute",top:40,left:40, color:"white"}}>
+        {preamble} 
+      <br /> 
+    <button onClick={()=>transition(["game", mode[1], mode[2]])}> Start</button>
+    </div></>
   }
   else if (mode[0] == "game"){
       // set up game

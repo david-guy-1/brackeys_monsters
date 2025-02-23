@@ -269,10 +269,10 @@ class game implements game_interface{
             }
             let lst = choice.split(" ");
             //DEBUG:
-            lst = ["fastlose"]
+            lst = ["assassin"]
             this.can_swing  = true;
-            this.can_repel = true;
-            this.can_fireball  = true;
+            //this.can_repel = true;
+            //this.can_fireball  = true;
             //END DEBUG
             this.item_tasks[this.sort[i]] =lst[Math.floor(Math.random() * lst.length)]
         }
