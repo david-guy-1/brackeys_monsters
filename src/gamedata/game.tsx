@@ -1,4 +1,4 @@
-import _, { countBy, flatten, shuffle } from "lodash";
+import _, { countBy, flatten } from "lodash";
 import { game_interface, point } from "../interfaces";
 import { angle_between, bfs, dist, doLinesIntersect, dot, getIntersection, len, lerp, lincomb, move_lst, moveIntoRectangleWH, moveTo, normalize, pointClosestToSegment, pointInsidePolygon, pointInsideRectangleWH, pointToCoefficients, rescale, vector_angle } from "../lines";
 import { rotate_command, scale_command } from "../rotation";
@@ -6,6 +6,7 @@ import { d_image } from "../canvasDrawing";
 import { dag } from "../dag";
 import { canvas_size, min_town_dist, player_speed } from "./constants";
 import files from "./database.json";
+import { choice as randchoice, get_number, random, shuffle } from "../random";
 
 
 type attack_type =  repel_spell | fireball_spell | "swing"
@@ -154,6 +155,8 @@ class game implements game_interface{
     monsters_killed : number = 0; 
     player_hits : number = 0;
     seed : string;
+    random_calls : number = 0;
+    secondseed : string;
     // player movement
     player : point = [400,400];
     target : point = [400, 400];
@@ -214,13 +217,26 @@ class game implements game_interface{
     kill_target : number | undefined = undefined;
     time_target : number | undefined = undefined;
 
+    r(){
+        this.random_calls++; //RESET THIS EVERY SESSION
+        let number =  random(this.secondseed + this.random_calls.toString());
+        if(number < 0 || number >= 1){
+            throw "number is invalid " + number;
+        }
+        return number;
+        
+    }
     constructor(seed : string, n_vertices : number){
         this.seed = seed;  
+        this.secondseed = this.seed + "constructor";
+        this.random_calls = 0;  
         this.graph = new dag(_.range(n_vertices).map(x => x.toString()), []);  
         for(let i=0; i<2*n_vertices || this.graph.get_exposed_vertices(new Set()).size >= 6; i++){
             try {
-                this.graph.add_edge(Math.floor(Math.random() * n_vertices).toString(), Math.floor(Math.random() * n_vertices).toString());
-                this.graph.add_edge(i.toString(), Math.floor(Math.random() * n_vertices).toString());
+                let [x,y]  = [Math.floor(this.r() * n_vertices).toString(), Math.floor(this.r() * n_vertices).toString()]
+                this.graph.add_edge(x,y);
+                let [u,v] = [(i % n_vertices).toString(), Math.floor(this.r() * n_vertices).toString()];
+                this.graph.add_edge(u,v);
 
             }catch(e){
 
@@ -238,7 +254,7 @@ class game implements game_interface{
                 if(exposed_vertices.has(i.toString())){
                     chosen_town = 0;
                 } else {
-                    chosen_town =  Math.floor(Math.random() * (n_towns-1)) + 1;
+                    chosen_town =  Math.floor(this.r() * (n_towns-1)) + 1;
                 }
                 this.towns[chosen_town.toString()].add(i.toString());
                 
@@ -250,7 +266,7 @@ class game implements game_interface{
         this.town_locations = {};
         for(let item of Object.keys(this.towns)){
             while(true){
-                let next_point : point = [Math.random() * canvas_size[0], Math.random() * canvas_size[1]];
+                let next_point : point = [this.r() * canvas_size[0], this.r() * canvas_size[1]];
                 next_point = lincomb(0.7, next_point, 0.1, canvas_size) as point;
                 if(_.some(Object.values(this.town_locations).map(x => dist(x, next_point) < min_town_dist))){
                 } else {
@@ -279,10 +295,10 @@ class game implements game_interface{
             this.can_fireball  = true;
             */
             //END DEBUG
-            this.item_tasks[this.sort[i]] =lst[Math.floor(Math.random() * lst.length)]
+            this.item_tasks[this.sort[i]] =lst[Math.floor(this.r() * lst.length)]
         }
         // images
-        let s = _.shuffle(Object.values(files[1]));
+        let s = shuffle(Object.values(files[1]), this.r().toString());
         this.item_names = s.map(x => x.name);
         this.images = s.map(x => x.image);
     } ; 
@@ -338,6 +354,8 @@ class game implements game_interface{
     // discrete move;
     setup_maze(w : number, h : number){
         this.clear()
+        this.secondseed = this.seed + "constructor";
+        this.random_calls = 0; 
         this.move_flag = false;
         this.mode = "maze";
         this.dims = [w,h];
@@ -345,7 +363,7 @@ class game implements game_interface{
         for(let i=0; i < w; i++){
             this.maze_points.push([]);
             for(let j=0; j < h; j++){
-                this.maze_points[i].push(Math.random() < 0.6); // random stuff
+                this.maze_points[i].push(this.r() < 0.6); // random stuff
             }
         }
         this.maze_points[0][0] = false
@@ -377,6 +395,8 @@ class game implements game_interface{
     }
     setup_potions(num_potions : number){
         this.clear()
+        this.secondseed = this.seed + "potions";
+        this.random_calls = 0; 
         this.move_flag = false;
         this.mode = "potions";
         // make potions
@@ -385,35 +405,35 @@ class game implements game_interface{
         }
         let potions = [];
         for(let i=0; i < num_potions; i++){
-            potions.push(`hsl(${Math.random() * 360}, 75%, 80% )`)
+            potions.push(`hsl(${this.r() * 360}, 75%, 80% )`)
         }
-        this.potions =  _.shuffle(potions);// correct value 
+        this.potions =  shuffle(potions, this.r().toString());// correct value 
         
 
         // generate rules to constrain potions
         while(this.rules.length < 18){
-            let choice :  "first" | "before"  | "last"  = _.sample(["first", "before", "last",]); 
+            let choice :  "first" | "before"  | "last"  = randchoice(["first", "before", "last"], this.r().toString()); 
             // choose a potion to constrain 
             let index = 0;
             if(this.rules.length < this.potions.length){
                 index = this.rules.length;
             } else {
-                index = Math.floor(Math.random() * num_potions)
+                index = Math.floor(this.r() * num_potions)
             }
             let constrained_potion = this.potions[index];
             if(constrained_potion == undefined){
                 throw "constrained is undefined";
             }
             if(choice == "first"){
-                this.rules.push({type:"first", x : constrained_potion, y : Math.min(num_potions, Math.ceil((index +0.1)* (1.2 + Math.random() * 0.3)))}); 
+                this.rules.push({type:"first", x : constrained_potion, y : Math.min(num_potions, Math.ceil((index +0.1)* (1.2 + this.r() * 0.3)))}); 
             }
             if(choice == "last" && index != 0){
-                this.rules.push({type:"last", x : constrained_potion, y : Math.max(1, Math.floor((index-0.1) * (0.8 - Math.random() * 0.2)))}); 
+                this.rules.push({type:"last", x : constrained_potion, y : Math.max(1, Math.floor((index-0.1) * (0.8 - this.r() * 0.2)))}); 
             }
             if(choice == "before"){
                 let index2 = -1
                 while(index2 == -1 || index == index2){
-                    index2 = Math.floor(Math.random() * num_potions);
+                    index2 = Math.floor(this.r() * num_potions);
                 }
                 if(index2 < index){
                     this.rules.push({type:"before", y : constrained_potion, x : this.potions[index2]});
@@ -422,13 +442,13 @@ class game implements game_interface{
                 }
             }
         }
-        this.rules = _.shuffle(this.rules)
+        this.rules = shuffle(this.rules, this.r().toString())
         this.already_put = this.potions;
         if(!_.every(this.check_potions())){
             throw "failure to generate";
         }
         
-        this.potions =  _.shuffle(potions);// scramble them
+        this.potions =  shuffle(potions, this.r().toString());// scramble them
         this.already_put = [];
     }
 

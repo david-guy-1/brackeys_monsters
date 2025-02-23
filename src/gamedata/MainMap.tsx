@@ -16,7 +16,7 @@ function handleClick(e : MouseEvent,g : game, recall : (s : string)=> void){
     }
 }
 
-function MainMap({g,recall} : {g : game ,recall : (s : string) => void} ){
+function MainMap({g,recall,seed} : {g : game ,recall : (s : string) => void,seed:string} ){
     let x = useRef<HTMLCanvasElement>(null); 
     useEffect(function(){
         let lst : draw_command[] = []; 
@@ -56,7 +56,7 @@ function MainMap({g,recall} : {g : game ,recall : (s : string) => void} ){
     if(g.collected_dag.size == g.graph.vertices.size){
         recall("globalwin");
     }
-    return <><canvas ref={x} width={canvas_size[0]+200} height={canvas_size[1]} style={{position:"absolute",top:0,left:0}} onClick={(e) => handleClick(e.nativeEvent,g,  recall)}></canvas><div style={{position:"absolute",top:0,left:canvas_size[0],width:200}}>{[...g.collected_dag].map(x => <img src={"base_items/items/" + g.images[parseInt(x)]}/>)}</div><MuteButton x={780} y = {0}/></>;
+    return <><canvas ref={x} width={canvas_size[0]+200} height={canvas_size[1]} style={{position:"absolute",top:0,left:0}} onClick={(e) => handleClick(e.nativeEvent,g,  recall)}></canvas><div style={{position:"absolute",top:0,left:canvas_size[0],width:200}}>{[...g.collected_dag].map(x => <img src={"base_items/items/" + g.images[parseInt(x)]}/>)}</div><div style={{position:"absolute",top:400,left:canvas_size[0],width:200}}>Seed:{seed}</div><MuteButton x={760} y = {0}/></>;
 
 }
 

@@ -106,15 +106,17 @@ function App() {
       return  loading ? <>"loading"</> :<> 
       
       <img src={"images/bgstart.png"} style={{position:"absolute",zIndex:-1,top:0,left:0}}/>
-      
-      <div style={{"position" :"absolute", "top":300,fontSize:30,color:"white",padding:20, "left":200,"width":200,"height":100,"backgroundColor":"#880000"}} onClick={() => {promises.then(() =>{ setG(new game("a", 25)); setMode("map");})}}>Click to start</div>
+
+      <textarea style={{"position" :"absolute", "top":250,color:"white", "left":200,"width":200,"height":30,"backgroundColor":"#880000"}} >Enter seed</textarea>
+
+      <div style={{"position" :"absolute", "top":300,fontSize:30,color:"white",padding:20, "left":200,"width":200,"height":100,"backgroundColor":"#880000"}} onClick={() => {promises.then(() =>{ setG(new game(document.querySelector("textarea")!.value , 25)); setMode("map");})}}>Click to start</div>
 
       <h1 style={{color:"white",position:"absolute",zIndex:1,top:100,left:100}}>The Trail of the Wanderer</h1>
       </>; // SET NUMBER OF ELEMENTS HERE
   }
   else if (mode == "map"){
     if(g){
-      return <MainMap g={g} recall={(s : string) => setMode(["town", s])}/>
+      return <MainMap g={g} recall={(s : string) => setMode(["town", s])} seed={g.seed} />
     } else {
       return <>no game here</>;
     }
@@ -210,7 +212,7 @@ function App() {
           data.display.button.push(["sword", [canvas_size[0] +10, 90, 100, 30], "sword (E)"])
         }
       }
-      return <><GameDisplay data={data} globalStore={store}/><MuteButton x={780} y = {0}/></>
+      return <><GameDisplay data={data} globalStore={store}/><MuteButton x={760} y = {0}/></>
       // register event listener;
   }else if (mode == "test"){
     return <Test_canvas />;
@@ -238,7 +240,7 @@ function App() {
 
     return <><img src={"images/bgwin.png"} style={{position:"absolute",zIndex:-1,top:0,left:0}}/><div style={{position:"absolute",top:40,left:40}}>You win! You get <img src={"base_items/items/"+g.images[parseInt(mode[1])]}/> {g.item_names[parseInt(mode[1])]}<br />{message}
     <br />
-    <button onClick={()=>transition("map")}> Go back</button></div><MuteButton x={780} y = {0}/></>
+    <button onClick={()=>transition("map")}> Go back</button></div><MuteButton x={760} y = {0}/></>
   }
   else if(mode[0] == "lose"){
     if(g == undefined){
@@ -266,7 +268,7 @@ function App() {
         <br />
         You could have gotten <img src={"base_items/items/"+g.images[parseInt(mode[1])]}/> {g.item_names[parseInt(mode[1])]} but you didn't<br />
         <button onClick={()=>transition("map")}> Go back</button>
-    </div><MuteButton x={780} y = {0}/></>
+    </div><MuteButton x={760} y = {0}/></>
   }
   else if(mode == "globalwin"){
     return <><img src={"images/bgwin.png"} style={{position:"absolute",zIndex:-1,top:0,left:0}}/><div style={{position:"absolute",top:40,left:40}}>

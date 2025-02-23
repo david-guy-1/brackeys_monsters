@@ -6,6 +6,8 @@ import { base_fairy, laser_monster, lunge_monster, pursue, shoot_bullets, wander
 
 export function prepare_level(g : game, choice : string, sort_index : number){
     // trees
+    g.random_calls = 0;
+    g.secondseed = g.seed + "prepare"
     let size = rescale(0, g.sort.length, 5000, 12000, sort_index);
     let ratio = sort_index / g.sort.length; 
 
@@ -15,7 +17,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
         g.player = [size/2, size-100];
         let n_coins = Math.ceil(1 + ratio*19); 
         for(let i=0; i < n_coins; i++){
-            g.coin_points.push([Math.random() * size, Math.random() * size/3]);
+            g.coin_points.push([g.r() * size, g.r() * size/3]);
             g.collected.push(false);
         }
         g.tick_fn = function(g){
@@ -30,7 +32,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
     if(choice == "escape"){
         g.setup_chase(size, size); 
         g.player = [size/2, 100];
-        g.exit = [Math.random() * size, (Math.random()*0.1 + 0.88) * size ];
+        g.exit = [g.r() * size, (g.r()*0.1 + 0.88) * size ];
         g.tick_fn = function(g){
             g.player_hits = g.seen_total;
             if(g.exit && dist(g.player, g.exit) < 30){
@@ -50,7 +52,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
         let angle = -Math.PI/2
         for(let i=0; i < 20; i++){
             angle += 2 * Math.PI / 20; 
-            g.escort_points.push(lincomb(1, [size/2, size/2] ,( Math.random() * 0.2 + 0.75) * size/2, unit_vector(angle)) as point);
+            g.escort_points.push(lincomb(1, [size/2, size/2] ,( g.r() * 0.2 + 0.75) * size/2, unit_vector(angle)) as point);
         }
         g.tick_fn = function(g){
             if(dist(g.escort_pos , g.escort_points[g.escort_points.length-1]) < 20){
@@ -239,9 +241,9 @@ export function prepare_level(g : game, choice : string, sort_index : number){
             num_walls = 0;
         }
         for(let i = 0; i < num_walls; i++){
-            let angle = Math.random() * 2 * Math.PI
+            let angle = g.r() * 2 * Math.PI
             let length = 1000 + ratio * 2000;
-            let start :point = [Math.random() * g.dims[0], Math.random() * g.dims[1]]
+            let start :point = [g.r() * g.dims[0], g.r() * g.dims[1]]
             let wall : [point, point]= [start, lincomb(1, start, length, [Math.cos(angle), Math.sin(angle)]) as point]
             if(is_wall_valid(wall, g.walls)){
                 let good = true;

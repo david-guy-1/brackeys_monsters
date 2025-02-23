@@ -26,7 +26,7 @@ function town({g, town, recall} : {g : game, town : string, recall : (data : any
         }
     }
 
-    return <><MuteButton x={780} y = {0}/><img src="images/bg6.png" style={{"position":"absolute", top:0, zIndex:-1,left:0}}/>
+    return <><MuteButton x={760} y = {0}/><img src="images/bg6.png" style={{"position":"absolute", top:0, zIndex:-1,left:0}}/>
        <div style={{position:"absolute", top:20, left:50, width:canvas_size[0]+60, height:canvas_size[1]-80,border:"1px solid black", padding:10,fontSize:20}}><table><tbody>{inner}</tbody></table><br /><button onClick={() => recall("back")}>Back </button>
        </div> 
         </>

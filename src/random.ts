@@ -159,6 +159,7 @@ export function sha256(m : any) {
 }
 var seenSeeds = new Set<string>()
 
+// number is between 0 and 16^12
 export function get_number(seed : string) {
 	//////console.log(seed);
 	if(seenSeeds.has(seed)){
