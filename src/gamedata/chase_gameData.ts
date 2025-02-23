@@ -87,46 +87,46 @@ export let sound_fn : sound_fn_type = function(g : game, globalStore : globalSto
     let lst = [];
     for(let item of events){
         if(item == "collected"){
-            lst.push("alphabet/A.wav");
+            lst.push("sounds/collect.wav");
         }
         if(item == "seen"){
             if(globalStore.last_touch < g.time-10){
-                lst.push("alphabet/B.wav");
+                lst.push("sounds/seen.wav");
             }
             globalStore.last_touch = g.time;
         }
         if(item == "monster"){
             if(globalStore.last_touch < g.time-10){
-                lst.push("alphabet/C.wav");
+                lst.push("sounds/monster.wav");
             }
             globalStore.last_touch = g.time;
         }
         if(item == "kill"){
-            lst.push("alphabet/D.wav");
+            lst.push("sounds/kill.wav");
         }    
         if(item == "fairy"){
-            lst.push("alphabet/I.wav");
+            lst.push("sounds/fairy.wav");
         }            
     }
     if(globalStore.repel_cast){
         globalStore.repel_cast = false;
         console.log("got here");
-        lst.push("alphabet/E.wav");
+        lst.push("sounds/repel.wav");
     }
     if(globalStore.fireball_cast){
         globalStore.fireball_cast = false;
-        lst.push("alphabet/F.wav");
+        lst.push("sounds/fireball.wav");
     }
     if(globalStore.swing_cast){
         globalStore.swing_cast = false;
-        lst.push("alphabet/G.wav");
+        lst.push("sounds/sword.wav");
     }
     if(g.tick_fn?.(g) != undefined && !globalStore.end_sound_playing){
         globalStore.end_sound_playing = true;
-        lst.push("alphabet/H.wav");
+        lst.push("sounds/win.wav");
     }
 
-    return [undefined, lst];
+    return ["output.mp3", lst];
 }
 
 export let prop_commands : prop_commands_type = function(g : game,globalStore : globalStore_type, events : any[]){

@@ -67,7 +67,7 @@ export let sound_fn : sound_fn_type = function(g : game, globalStore : globalSto
     assert_mode(g);
     if(globalStore.maze_chopped == true){
         globalStore.maze_chopped = false;
-        return [undefined, ["alphabet/A.wav"]];
+        return [undefined, ["sounds/kill.wav"]];
         
     }
     return [undefined, []];

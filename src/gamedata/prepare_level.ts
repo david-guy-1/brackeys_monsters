@@ -142,6 +142,20 @@ export function prepare_level(g : game, choice : string, sort_index : number){
         }
     }
 
+    if(choice == "fastlose"){
+        g.setup_chase(size, size);
+        g.player = [size/2, 100];
+
+        g.tick_fn = function(g){
+            if(g.time > 10){
+                return "defeat";
+            }
+            if(g.player_hits > player_max_hp){
+                return "defeat";
+            }
+        }
+    }
+
     // boilerplate
     
     if( choice != "maze" && choice != "potions"){

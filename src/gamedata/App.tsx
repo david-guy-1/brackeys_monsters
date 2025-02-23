@@ -16,6 +16,7 @@ import Town from './Town';
 import {choice as randchoice} from "../random"
 import { laser_monster, pursue, shoot_bullets, wanderer } from './monster_patterns';
 import { prepare_level } from './prepare_level';
+import MuteButton from '../MuteButton';
 
 // mousemove
 function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
@@ -160,7 +161,7 @@ function App() {
       if(g?.can_swing){
         data.display.button.push(["sword", [canvas_size[0] +10, 90, 100, 30], "sword (E)"])
       }
-      return <GameDisplay data={data} globalStore={store}/>
+      return <><GameDisplay data={data} globalStore={store}/><MuteButton x={780} y = {0}/></>
       // register event listener;
   }else if (mode == "test"){
     return <Test_canvas />;

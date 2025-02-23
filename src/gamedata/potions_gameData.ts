@@ -84,7 +84,7 @@ export let anim_fn : anim_fn_type = function(g: game, globalStore: globalStore_t
 export let sound_fn : sound_fn_type = function(g : game, globalStore : globalStore_type ,events : any[]){
     assert_mode(g);
     if(globalStore.potion_anim_state != undefined){
-        return [undefined, ["alphabet/A.wav"]];
+        return [undefined, ["sounds/seen.wav"]];
     }
     return [undefined, []];
 }
