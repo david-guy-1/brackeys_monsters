@@ -240,7 +240,7 @@ class game implements game_interface{
                 this.towns[chosen_town.toString()].add(i.toString());
                 
             }
-            if(_.every(Object.values(this.towns).map(x => x.size >= 2))){
+            if(_.every(Object.keys(this.towns).map(x => x == "0" || this.towns[x].size >= 2))){
                 break;
             }
         }
@@ -269,7 +269,7 @@ class game implements game_interface{
             }
             let lst = choice.split(" ");
             //DEBUG:
-            lst = ["fetch"]
+            lst = ["fastlose"]
             this.can_swing  = true;
             this.can_repel = true;
             this.can_fireball  = true;

@@ -103,7 +103,7 @@ function App() {
       let promises = Promise.allSettled(image_files.map(x => loadImage( x)))
       
       promises.then(() => setLoading(false)); 
-      return  loading ? <>"loading"</> : <button onClick={() => {promises.then(() =>{ setG(new game("a", 50)); setMode("map");})}}>Click to start</button>;
+      return  loading ? <>"loading"</> : <button onClick={() => {promises.then(() =>{ setG(new game("a", 5)); setMode("map");})}}>Click to start</button>; // SET NUMBER OF ELEMENTS HERE
   }
   else if (mode == "map"){
     if(g){
@@ -113,6 +113,10 @@ function App() {
     }
   }
   else if (mode[0] == "town"){
+    if(mode[1] == "globalwin"){
+      setMode("globalwin");
+      return <></>
+    }
     if(g == undefined){
       setMode("menu");
     } else {
@@ -192,19 +196,36 @@ function App() {
     <button onClick={()=>transition("map")}> Go back</button></div></>
   }
   else if(mode[0] == "lose"){
-    return <>Oh no! Something went wrong! Remember: Nothing can go wrong!<br />
-    {
-      function(){
-      if(mode[2] == "escape"){
-        return "You were seen.";
-      }if(mode[2] == "escort"){
-        return "You failed to protect the person.";
-      }if(mode[2] == "fairy"){
-        return "You failed to protect the fairy.";
-      }
-      return "You got hit by too many monsters."
-    }()} <br />
-    You could have gotten {mode[1]} but you didn't <button onClick={()=>transition("map")}> Go back</button></>
+    if(g == undefined){
+      throw "lose undefined game"; 
+    }
+    return <><img src={"images/bgwin.png"} style={{position:"absolute",zIndex:-1,top:0,left:0}}/><div style={{position:"absolute",top:40,left:40}}>
+
+    Oh no! Something went wrong! Remember: Nothing can go wrong!<br />
+        {
+          function(){
+          if(mode[2] == "escape"){
+            return "You were seen.";
+          }if(mode[2] == "escort"){
+            return "You failed to protect the person.";
+          }if(mode[2] == "fairy"){
+            return "You failed to protect the fairy.";
+          }
+          return "You got hit by too many monsters."
+        }()} 
+        <br />
+        You could have gotten <img src={"base_items/items/"+g.images[parseInt(mode[1])]}/> {g.item_names[parseInt(mode[1])]} but you didn't<br />
+        <button onClick={()=>transition("map")}> Go back</button>
+    </div></>
+  }
+  else if(mode == "globalwin"){
+    return <><img src={"images/bgwin.png"} style={{position:"absolute",zIndex:-1,top:0,left:0}}/><div style={{position:"absolute",top:40,left:40}}>
+
+   Congratulations! You completed every single task!
+   <br />
+   <br />
+        <button onClick={()=>transition("menu")}> Go back</button>
+    </div></>
   }
   return "none of the modes match - " + mode;  
 

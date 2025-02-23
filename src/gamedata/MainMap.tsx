@@ -52,6 +52,9 @@ function MainMap({g,recall} : {g : game ,recall : (s : string) => void} ){
         lst.push(d_text(bottom_text, 10, canvas_size[1]-10));
         draw(lst, x as React.RefObject<HTMLCanvasElement> );
     },[])
+    if(g.collected_dag.size == g.graph.vertices.size){
+        recall("globalwin");
+    }
     return <><canvas ref={x} width={canvas_size[0]+200} height={canvas_size[1]} style={{position:"absolute",top:0,left:0}} onClick={(e) => handleClick(e.nativeEvent,g,  recall)}></canvas><div style={{position:"absolute",top:0,left:canvas_size[0],width:200}}>{[...g.collected_dag].map(x => <img src={"base_items/items/" + g.images[parseInt(x)]}/>)}</div></>;
 
 }

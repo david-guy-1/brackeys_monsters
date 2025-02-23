@@ -20,7 +20,7 @@ type globalStore_type = {
 }
 
 // display modes (in App)
-type exp_modes = ["game", string,string] | "menu" | "map" | "test" | ["town", string] | ["prepare", string] | ["win" , string, string] | ["lose", string, string]; 
+type exp_modes = ["game", string,string] | "menu" | "map" | "test" | ["town", string] | ["prepare", string] | ["win" , string, string] | ["lose", string, string] | "globalwin"; 
 
 /*
 town : which town is selected
