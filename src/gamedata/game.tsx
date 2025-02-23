@@ -106,6 +106,7 @@ export class repel_spell {
     width:number;
     draw : draw_command;
     lifespan : number; 
+    type = "repel_spell";
     constructor(position : point,velocity : point,width : number, lifespan : number){
         this.position=position;
         this.velocity=velocity;
@@ -125,6 +126,7 @@ export class fireball_spell {
     width:number;
     draw : draw_command;
     lifespan : number; 
+    type = "fireball_spell";
     constructor(position : point,velocity : point,width : number, lifespan : number){
         this.position=position;
         this.velocity=velocity;
@@ -269,10 +271,12 @@ class game implements game_interface{
             }
             let lst = choice.split(" ");
             //DEBUG:
-            lst = ["assassin"]
+            /*
+            lst = ["kill"]
             this.can_swing  = true;
-            //this.can_repel = true;
-            //this.can_fireball  = true;
+            this.can_repel = true;
+            this.can_fireball  = true;
+            */
             //END DEBUG
             this.item_tasks[this.sort[i]] =lst[Math.floor(Math.random() * lst.length)]
         }
@@ -629,6 +633,9 @@ class game implements game_interface{
             if(this.collected[i] == false && dist(this.player, coin) < 60) {
                 this.collected[i] = true; 
                 collected = true;
+                // fully heal the player if a collection happens
+                this.player_hits = 0;
+                this.seen_total = 0;
             }
         }
         return collected

@@ -120,7 +120,7 @@ export function draw_fireball_spells(g : game){
 export function draw_swing(g : game, globalStore : globalStore_type){
     if(g.swing != undefined){
         
-        return [displace_command(rotate_command(scale_command(canonical_swing,[0,0], 110/g.swing.size,110/g.swing.size) , [0,0], g.swing.angle), lincomb(1, g.player,1, g.swing.offset) as point)];
+        return [displace_command(rotate_command(scale_command(canonical_swing,[0,0], g.swing.size/110,g.swing.size/110) , [0,0], g.swing.angle), lincomb(1, g.player,1, g.swing.offset) as point)];
     } else {
         return []
     }
@@ -128,7 +128,7 @@ export function draw_swing(g : game, globalStore : globalStore_type){
 export function draw_trees(g : game){
     let output : draw_command[] = [];
     for(let [i,tree] of g.trees.entries()) {
-        output.push(d_image(`trees/${i%5}resized.png`, tree));
+        output.push(d_image(`trees/${i%5}resizedtrans.png`, tree));
     }
     return output; 
 }
@@ -232,6 +232,9 @@ export function draw_arrow(g : game){
 }
 export function draw_all(g : game, store : globalStore_type){
     let output : draw_command[] = [];
+    //edge of map 
+    output.push(add_com(d_rect2(0, 0, g.dims),{width2:10, color:"black"}));
+    console.log(output);
     // escort
     if(g.escort_points.length != 0){
         output.push(d_image("images/escorted.png", g.escort_pos))

@@ -33,7 +33,7 @@ function b(this : monster ,g : game, type : attack_type){
 }; 
 //hit
 function c(this : monster ,g : game, type : attack_type){
-    if(type instanceof repel_spell){
+    if(!(typeof type == "string") && type.type== "repel_spell"){
         let angle = Math.atan2(type.velocity[1], type.velocity[0]);
         g.move_wall(this.position, repel_monster(this.position, type));
         if(this.vision != undefined){
@@ -49,7 +49,7 @@ function c(this : monster ,g : game, type : attack_type){
 // touch_player
 function d(this : monster, g : game, laser : boolean){}
 // tick
-function e(this : monster, g : game){if(taxicab_dist( this.position, g.player) > 1000){return}; for(let item of this.attrib["tick"]) { item(this, g)}};
+function e(this : monster, g : game){if(taxicab_dist( this.position, g.player) > 500){return}; for(let item of this.attrib["tick"]) { item(this, g)}};
 
 /*
 functions come in 3 kinds : 

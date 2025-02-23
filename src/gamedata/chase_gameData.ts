@@ -16,7 +16,7 @@ import { displace_command } from "../rotation";
 import { draw_all, draw_arrow, draw_monsters, draw_repel_spells, draw_trees, move_player_to_point } from "./utilities";
 
 export let display : display_type = {
-    "button" : [],
+    "button" : [["lose", [610, 400, 100, 30], "Quit"]],
     "canvas" : [["main_canvas main",[0,0,canvas_size[0],canvas_size[1]]]],
     "image" : [["images/background.png",false, 0,0]],
     "text":[] 
@@ -162,6 +162,9 @@ export let button_click : button_click_type = function(g : game,globalStore : gl
     if(name == "fireball"){
         fireball_attempt(g, globalStore);
     }
+    if(name == "lose"){
+        return [["defeat", null]];
+    }
     return [];
 }
 
@@ -222,7 +225,7 @@ export function swing_attempt(g : game, store : globalStore_type){
     }
     let offset : point = [direction_vector[0] < 0 ? -22 : 22, -23];
     if(g.can_swing && g.time - g.last_swing >= 30){
-      g.start_swing(100, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2, offset);
+      g.start_swing(160, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2, offset);
       store.swing_cast = true;
     }else if(store.display_contents.length == 0){
       store.display_contents.push(["Attack on cooldown", g.time + 60]);

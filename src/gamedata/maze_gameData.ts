@@ -15,7 +15,7 @@ import { canvas_size, player_speed } from "./constants";
 
 export let display : display_type = {
     "button" : [["up", [50,50,50,50], "up"], ["left", [0,100,50,50], "left"],
-    ["down", [50,100,50,50], "down"], ["right", [100,100,50,50], "right"], ["restart", [0,160,150,50], "restart"]],
+    ["down", [50,100,50,50], "down"], ["right", [100,100,50,50], "right"], ["restart", [0,160,150,50], "restart"],["lose", [10, 400, 100, 30], "Quit"]],
     "canvas" : [["main_canvas a main",[200,0,600,600]]],
     "image" : [["images/bg3.png",false, 0,0]],
     "text":[["WASD to move", 10, 300, {}], ["Get to bottom right", 10, 340, {}]] 
@@ -114,6 +114,9 @@ export let button_click : button_click_type = function(g : game,globalStore : gl
     }
     if("up down left right".split(" ").indexOf(name) != -1){
         chop_tree(g, next_v, globalStore);
+    }
+    if(name == "lose"){
+        return [["defeat", null]];
     }
     return [];
 

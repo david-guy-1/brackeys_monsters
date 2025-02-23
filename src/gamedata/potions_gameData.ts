@@ -15,7 +15,7 @@ import { cauldron_pos, player_speed, potion_size, potion_start, potions_per_row 
 import { displace_command } from "../rotation";
 
 export let display : display_type = {
-    "button" : [["undo", [50,50,50,50], "undo"],["reset", [50,100,50,50], "reset"]],
+    "button" : [["undo", [50,50,50,50], "undo"],["reset", [50,100,50,50], "reset"],["lose", [10, 400, 100, 30], "Quit"]],
     "canvas" : [["anims",[200,0,600,600]],["main_canvas a main",[200,0,600,600]]],
     "image" : [["images/bg4.png",false, 0,0]],
     "text":[] 
@@ -114,6 +114,9 @@ export let button_click : button_click_type = function(g : game,globalStore : gl
         case "reset":
             g.already_put = [];
         break;
+    }
+    if(name == "lose"){
+        return [["defeat", null]];
     }
     return [];
 }

@@ -6,7 +6,7 @@ import { base_fairy, laser_monster, lunge_monster, pursue, shoot_bullets, wander
 
 export function prepare_level(g : game, choice : string, sort_index : number){
     // trees
-    let size = rescale(0, g.sort.length, 5000, 20000, sort_index);
+    let size = rescale(0, g.sort.length, 5000, 12000, sort_index);
     let ratio = sort_index / g.sort.length; 
 
 
@@ -32,6 +32,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
         g.player = [size/2, 100];
         g.exit = [Math.random() * size, (Math.random()*0.1 + 0.88) * size ];
         g.tick_fn = function(g){
+            g.player_hits = g.seen_total;
             if(g.exit && dist(g.player, g.exit) < 20){
                 return "victory";
             }
@@ -68,7 +69,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
     if(choice == "kill"){
         g.setup_chase(size, size);
         g.player = [size/2, 100];
-        g.kill_target = Math.floor(100 + 100*ratio);
+        g.kill_target = Math.floor(30 + 30*ratio);
         g.tick_fn = function(g){
             if(g.kill_target == undefined || g.monsters_killed >= g.kill_target){
                 return "victory";
@@ -82,7 +83,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
         g.setup_chase(1200, 1200);
         g.player = [600, 600]
         base_fairy(g, 600, 600);
-        g.time_target = Math.floor(1000 + 500*ratio);
+        g.time_target = Math.floor(2000 + 1000*ratio);
         g.tick_fn = function(g){
             if(g.time_target == undefined || g.time >= g.time_target){
                 return "victory";
@@ -120,7 +121,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
     }
 
     if(choice == "potions"){
-        g.setup_potions(5 + Math.floor(ratio * 20));
+        g.setup_potions(5 + Math.floor(ratio * 10));
         g.tick_fn = function(g){
             if(_.every(g.check_potions())){
                 return "victory";
@@ -164,9 +165,8 @@ export function prepare_level(g : game, choice : string, sort_index : number){
             // monsters
             let monster_limit = g.dims[0] * g.dims[1] / (600*600) * 3; 
             if(choice == "kill"){
-                monster_limit *=5;
+                monster_limit *=2;
             }
-            monster_limit = 10;
             while(g.monsters.filter(x => x.dont_count == false).length < monster_limit){
                 if(choice == "escape" || choice == "assassin"){
                     let m = wanderer(g, Math.random() * g.dims[0], Math.random() * g.dims[1] , 2 + ratio);
