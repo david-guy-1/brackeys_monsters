@@ -49,7 +49,7 @@ function c(this : monster ,g : game, type : attack_type){
 // touch_player
 function d(this : monster, g : game, laser : boolean){}
 // tick
-function e(this : monster, g : game){if(taxicab_dist( this.position, g.player) > 500){return}; for(let item of this.attrib["tick"]) { item(this, g)}};
+function e(this : monster, g : game){if(taxicab_dist( this.position, g.player) > 500 && g.mode_second != "fairy"){return}; for(let item of this.attrib["tick"]) { item(this, g)}};
 
 /*
 functions come in 3 kinds : 
@@ -64,7 +64,7 @@ the last two returns the monster
 // attrib: uses angle and angel_vel, must have speed
 function wander_tick(m : monster|fairy , g:game){
     m.attrib["angle_vel"] += (Math.random()-0.5)*0.01;
-    if(Math.abs(m.attrib["angle_vel"]) > 0.05){
+    if(Math.abs(m.attrib["angle_vel"]) > 0.03){
         m.attrib["angle_vel"] = 0; 
     }
     m.attrib["angle"] += m.attrib["angle_vel"];
@@ -234,7 +234,7 @@ export function laser_monster(m : monster){
 new fairy(position: point, name: string, should_check: (g: game, type: attack_type | monster) => boolean, hit: (g: game) => void, touch_player: (g: game) => void, tick_fn: (g: game) => void, monster_touch: (g: game, m: monster) => void): fairy
 */
 export function base_fairy(g : game, x : number, y : number){
-    let f = new fairy([x, y], "fairy", ()=>true,(g) => g.player_hits++, ()=>{},function(this : fairy,g:game){ wander_tick(this,g); this.position = moveIntoRectangleWH(this.position, 200,200,200,200) as point}, (g) => g.player_hits++);
+    let f = new fairy([x, y], "fairy", ()=>true,(g) => g.player_hits++, ()=>{},function(this : fairy,g:game){ wander_tick(this,g); this.position = moveIntoRectangleWH(this.position, 500,500,200,200) as point; if(g.time%200 == 0){this.attrib["angle"] += Math.PI}}, (g) => g.player_hits++);
     f.attrib["angle"] = Math.random() * 360; 
     f.attrib["angle_vel"] = 0;
     f.attrib["speed"] = 3;

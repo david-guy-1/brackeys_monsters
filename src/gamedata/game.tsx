@@ -148,6 +148,7 @@ class game implements game_interface{
     //fundamentals 
     dims : point = [0,0]; // width, height
     mode :modes = "chase"; 
+    mode_second : string = "";
     time : number = 0;
     move_flag = true; // if the mode is one where the player moves around 
     monsters_killed : number = 0; 
@@ -634,7 +635,10 @@ class game implements game_interface{
                 this.collected[i] = true; 
                 collected = true;
                 // fully heal the player if a collection happens
-                this.player_hits = 0;
+                this.player_hits -= 30;
+                if(this.player_hits < 0){
+                    this.player_hits = 0;
+                }
                 this.seen_total = 0;
             }
         }
@@ -689,7 +693,7 @@ class game implements game_interface{
     handle_monster_touch_player(){
         let touched = false; 
         for(let monster of this.monsters){
-            if(dist(monster.position, this.player) < 20){
+            if(dist(monster.position, this.player) < 30){
                 monster.touch_player(this,false);
                 this.player_hits++;
                 touched=  true;

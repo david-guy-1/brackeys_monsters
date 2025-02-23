@@ -33,7 +33,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
         g.exit = [Math.random() * size, (Math.random()*0.1 + 0.88) * size ];
         g.tick_fn = function(g){
             g.player_hits = g.seen_total;
-            if(g.exit && dist(g.player, g.exit) < 20){
+            if(g.exit && dist(g.player, g.exit) < 30){
                 return "victory";
             }
             if(g.seen_total > player_max_hp){
@@ -156,7 +156,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
             }
         }
     }
-
+    g.mode_second = choice;
     // boilerplate
     
     if( choice != "maze" && choice != "potions"){
@@ -167,16 +167,19 @@ export function prepare_level(g : game, choice : string, sort_index : number){
             if(choice == "kill"){
                 monster_limit *=2;
             }
+            if(choice == "assassin"){
+                monster_limit *= 0.7;
+            }
             while(g.monsters.filter(x => x.dont_count == false).length < monster_limit){
                 if(choice == "escape" || choice == "assassin"){
                     let m = wanderer(g, Math.random() * g.dims[0], Math.random() * g.dims[1] , 2 + ratio);
-                    m.vision = {vision_range: 200 + 100 * ratio,
+                    m.vision = {vision_range: 150 + 50 * ratio,
                         vision_arc: 0.3 + 0.15 * ratio,
                         direction: Math.random() * 2 * Math.PI}
                     m.see_player = function(g){
                         g.player_hits++;
                     }
-                    if(choice == "assassin" && m.name != "target") {
+                    if(m.name != "target") {
                             m.should_check = () => false; 
                     }
                 } 
@@ -194,8 +197,8 @@ export function prepare_level(g : game, choice : string, sort_index : number){
                     }
                     if(Math.random() < 0.2){
                         lunge_monster(m);
-                        m.attrib["lunge duration"] = 15 + ratio * 8;
-                        m.attrib["lunge speed"] = 8 + 2*ratio;
+                        m.attrib["lunge duration"] = 12 + ratio * 4;
+                        m.attrib["lunge speed"] = 7 + 1.5*ratio;
                         m.name += " lunge"
                     } else if (Math.random() < 0.2 + ratio){
                         if(Math.random() < 0.5){
