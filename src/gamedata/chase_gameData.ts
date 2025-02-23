@@ -76,20 +76,64 @@ export let draw_fn : draw_fn_type = function(g : game,globalStore : globalStore_
 
 export let anim_fn : anim_fn_type = function(g: game, globalStore: globalStore_type, events: any[]) {
     assert_mode(g);
+    // clear display
+    globalStore.display_contents = globalStore.display_contents.filter(([x,y]) =>y > g.time );
     let output : animation<game>[] = []; 
     return output;
 }
 
 export let sound_fn : sound_fn_type = function(g : game, globalStore : globalStore_type ,events : any[]){
     assert_mode(g);
-    return [undefined, []];
+    console.log(events)
+    let lst = [];
+    for(let item of events){
+        if(item == "collected"){
+            lst.push("alphabet/A.wav");
+        }
+        if(item == "seen"){
+            if(globalStore.last_touch < g.time-10){
+                lst.push("alphabet/B.wav");
+            }
+            globalStore.last_touch = g.time;
+        }
+        if(item == "monster"){
+            if(globalStore.last_touch < g.time-10){
+                lst.push("alphabet/C.wav");
+            }
+            globalStore.last_touch = g.time;
+        }
+        if(item == "kill"){
+            lst.push("alphabet/D.wav");
+        }    
+        if(item == "fairy"){
+            lst.push("alphabet/I.wav");
+        }            
+    }
+    if(globalStore.repel_cast){
+        globalStore.repel_cast = false;
+        console.log("got here");
+        lst.push("alphabet/E.wav");
+    }
+    if(globalStore.fireball_cast){
+        globalStore.fireball_cast = false;
+        lst.push("alphabet/F.wav");
+    }
+    if(globalStore.swing_cast){
+        globalStore.swing_cast = false;
+        lst.push("alphabet/G.wav");
+    }
+    if(g.tick_fn?.(g) != undefined && !globalStore.end_sound_playing){
+        globalStore.end_sound_playing = true;
+        lst.push("alphabet/H.wav");
+    }
+
+    return [undefined, lst];
 }
 
 export let prop_commands : prop_commands_type = function(g : game,globalStore : globalStore_type, events : any[]){
     assert_mode(g);
     // move player towards target
     move_player_to_point(g, globalStore);
-    
     // if all monsters are dead
     if(g.tick_fn == undefined){
         throw "chase without a victory or defeat condition"

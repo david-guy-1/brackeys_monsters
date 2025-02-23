@@ -35,7 +35,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
             if(g.exit && dist(g.player, g.exit) < 20){
                 return "victory";
             }
-            if(g.seen_time > player_max_hp){
+            if(g.seen_total > player_max_hp){
                 return "defeat";
             }
         }
@@ -152,6 +152,7 @@ export function prepare_level(g : game, choice : string, sort_index : number){
             if(choice == "kill"){
                 monster_limit *=5;
             }
+            monster_limit = 10;
             while(g.monsters.filter(x => x.dont_count == false).length < monster_limit){
                 if(choice == "escape" || choice == "assassin"){
                     let m = wanderer(g, Math.random() * g.dims[0], Math.random() * g.dims[1] , 2 + ratio);

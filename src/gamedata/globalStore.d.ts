@@ -14,6 +14,9 @@ type globalStore_type = {
     repel_cast : boolean;
     fireball_cast : boolean;
     swing_cast : boolean;
+    end_sound_playing : boolean;
+    maze_chopped : boolean;
+    last_touch : number;
 }
 
 // display modes (in App)

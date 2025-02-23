@@ -2,7 +2,7 @@ import { useState } from 'react'
 import game, {  repel_spell } from './game';
 
 import { data_obj as chase_obj  } from './chase_gameData';
-import { data_obj as maze_obj } from './maze_gameData';
+import { chop_tree, data_obj as maze_obj } from './maze_gameData';
 import { data_obj as potions_obj } from './potions_gameData';
 import { events } from '../EventManager';
 import GameDisplay, { clone_gamedata } from '../GameDisplay';
@@ -44,16 +44,16 @@ function keydown(e : KeyboardEvent, g : game, store : globalStore_type ){
   }
   if(g.mode == "maze"){
     if(e.key.toLowerCase() == "w"){
-      store.maze_msg = g.move_maze([0, -1])
+      chop_tree(g, [0, -1], store);
     }
     if(e.key.toLowerCase() == "a"){
-      store.maze_msg = g.move_maze([-1,0])
+      chop_tree(g, [-1,0], store);
     }
     if(e.key.toLowerCase() == "s"){
-      store.maze_msg = g.move_maze([0, 1])
+      chop_tree(g, [0, 1], store);
     }
     if(e.key.toLowerCase() == "d"){
-      store.maze_msg = g.move_maze([1, 0])
+      chop_tree(g, [1,0], store);
     }
   } else if(g.mode != "potions"){
     if(e.key.toLowerCase() == "q"){
@@ -103,7 +103,7 @@ function App() {
     return <>asdsasd</>
   }
 
-  let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0], walls:[], display_contents : [], repel_cast:false,fireball_cast:false,swing_cast:false}; 
+  let store : globalStore_type = {player_pos : lincomb(1, [0,0], 0.5, canvas_size) as point, player_last_pos : [0,0] , mouse_pos : [0,0], walls:[], display_contents : [], repel_cast:false,fireball_cast:false,swing_cast:false,end_sound_playing:false, maze_chopped : false, last_touch : Number.NEGATIVE_INFINITY}; 
   
   events["mousemove a"] = [move_canvas, null]
   events["click a"] = [click_fn, null]

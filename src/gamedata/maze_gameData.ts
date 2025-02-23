@@ -65,6 +65,11 @@ export let anim_fn : anim_fn_type = function(g: game, globalStore: globalStore_t
 
 export let sound_fn : sound_fn_type = function(g : game, globalStore : globalStore_type ,events : any[]){
     assert_mode(g);
+    if(globalStore.maze_chopped == true){
+        globalStore.maze_chopped = false;
+        return [undefined, ["alphabet/A.wav"]];
+        
+    }
     return [undefined, []];
 }
 
@@ -80,7 +85,12 @@ export let prop_commands : prop_commands_type = function(g : game,globalStore : 
     }
     return []; 
 }
-
+export let chop_tree = function(g : game, direction : point, globalStore : globalStore_type){
+    globalStore.maze_msg = g.move_maze(direction);
+    if(globalStore.maze_msg == "chopped"){
+        globalStore.maze_chopped = true;
+    }
+}
 export let button_click : button_click_type = function(g : game,globalStore : globalStore_type, name : string){
     assert_mode(g);
     
@@ -103,7 +113,7 @@ export let button_click : button_click_type = function(g : game,globalStore : gl
             break;
     }
     if("up down left right".split(" ").indexOf(name) != -1){
-        globalStore.maze_msg = g.move_maze(next_v);
+        chop_tree(g, next_v, globalStore);
     }
     return [];
 

@@ -75,14 +75,17 @@ export let anim_fn : anim_fn_type = function(g: game, globalStore: globalStore_t
     if(globalStore.potion_anim_state != undefined){
         g.add_potion(globalStore.potion_anim_state?.color);
         output = [new potion_anim(globalStore.potion_anim_state.place, globalStore.potion_anim_state.color)];
+        // reset anim_state at the very end
         globalStore.potion_anim_state = undefined;
-        console.log("got here");
     }
     return output;
 }
 
 export let sound_fn : sound_fn_type = function(g : game, globalStore : globalStore_type ,events : any[]){
     assert_mode(g);
+    if(globalStore.potion_anim_state != undefined){
+        return [undefined, ["alphabet/A.wav"]];
+    }
     return [undefined, []];
 }
 

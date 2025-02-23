@@ -269,10 +269,10 @@ class game implements game_interface{
             }
             let lst = choice.split(" ");
             //DEBUG:
-            //lst = ["fastwin"]
-            //this.can_swing  = true;
-            //this.can_repel = true;
-            //this.can_fireball  = true;
+            lst = ["fetch"]
+            this.can_swing  = true;
+            this.can_repel = true;
+            this.can_fireball  = true;
             //END DEBUG
             this.item_tasks[this.sort[i]] =lst[Math.floor(Math.random() * lst.length)]
         }
@@ -382,7 +382,7 @@ class game implements game_interface{
         for(let i=0; i < num_potions; i++){
             potions.push(`hsl(${Math.random() * 360}, 75%, 80% )`)
         }
-        this.potions =  _.shuffle(potions).map(x => x.toString()); // correct value 
+        this.potions =  _.shuffle(potions);// correct value 
         
 
         // generate rules to constrain potions
@@ -422,6 +422,8 @@ class game implements game_interface{
         if(!_.every(this.check_potions())){
             throw "failure to generate";
         }
+        
+        this.potions =  _.shuffle(potions);// scramble them
         this.already_put = [];
     }
 
@@ -472,6 +474,7 @@ class game implements game_interface{
 
     tick(){
         this.time++;
+        let lst : string[] = []; 
         // consistency checks
         if(this.coin_points.length != this.collected.length){
             this.collected = [];
@@ -487,18 +490,24 @@ class game implements game_interface{
             this.fairies.forEach(x => {x.tick(this); x.position = moveIntoRectangleWH(x.position, [0,0], this.dims) as point});
             this.handle_spells();
             this.handle_swing();
-            this.handle_collect();
+            this.handle_collect() ? lst.push("collected") : null;
             this.handle_lasers();
-            this.handle_seeing_monsters();
-            this.handle_monster_touch_player();
+            this.handle_seeing_monsters() ? lst.push("seen") : null;
+            this.handle_monster_touch_player()? lst.push("monster") : null;
             this.handle_escort();
-            this.clear_deleted_monsters();
-            this.handle_fairy_touch();
+            this.clear_deleted_monsters()? lst.push("kill") : null;
+            this.handle_fairy_touch() ? lst.push("fairy") : null;
         }
         if(this.tick_fn){
-            this.tick_fn(this);
+            let result = this.tick_fn(this);
+            if(result == "victory"){
+                lst.push("win");
+            }
+            if(result == "defeat"){
+                lst.push("lose");
+            }
         }
-        return []; 
+        return lst; 
     }
     // all of these are WORLD (not canvas) coordinates , the game doesn't even know there is a canvas! 
     cast_repel_spell (x : number, y : number,  lifespan : number, width : number = 100, velocity : number = 10){
@@ -597,7 +606,7 @@ class game implements game_interface{
         } else {
             this.seen_time = 0;
         }
-        return [];
+        return seen;
     }
     handle_escort(){
         if(this.escort_points.length > 0 && dist(this.player, this.escort_pos) < 500){
@@ -615,11 +624,14 @@ class game implements game_interface{
     }
     
     handle_collect(){
+        let collected = false;
         for(let [i, coin] of this.coin_points.entries()){
-            if(dist(this.player, coin) < 60) {
+            if(this.collected[i] == false && dist(this.player, coin) < 60) {
                 this.collected[i] = true; 
+                collected = true;
             }
         }
+        return collected
     }
     
     handle_lasers(){
@@ -635,12 +647,14 @@ class game implements game_interface{
     }
     //fairy touch anything (monsters, player attacks, player itself)
     handle_fairy_touch(){
+        let touched = false; 
         for(let fairy of this.fairies){
             //check monsters
             for(let monster of this.monsters){
                 if(fairy.should_check(this, monster)){
                     if(dist(monster.position, fairy.position) < 20){
                         fairy.monster_touch(this,monster);
+                        touched  = true;
                     }
                 }
             }
@@ -653,6 +667,7 @@ class game implements game_interface{
                 if(fairy.should_check(this, item)){
                     if(item == "swing" || dist(item.position, fairy.position) < 20){
                         fairy.hit(this,item);
+                        touched  = true;
                     }
                 }
             }
@@ -661,15 +676,19 @@ class game implements game_interface{
                 fairy.touch_player(this);
             }
         }
+        return touched;
     }
 
     handle_monster_touch_player(){
+        let touched = false; 
         for(let monster of this.monsters){
             if(dist(monster.position, this.player) < 20){
                 monster.touch_player(this,false);
                 this.player_hits++;
+                touched=  true;
             }
         }
+        return touched;
     }
     //for maze stuff
     is_tree(x : number, y : number){
@@ -700,6 +719,7 @@ class game implements game_interface{
             g.coin_points.push([...next_pos] as point);
             g.maze_chops--;
             g.player = next_pos;
+            return "chopped";
         } else {
             g.player = next_pos;
         }
@@ -707,16 +727,19 @@ class game implements game_interface{
     }
     // looks for "deleted" in name
     clear_deleted_monsters(){
+        let kill = false;
         for(let lst of [this.monsters, this.monsters, this.monsters, this.monsters]){
             for(let i=lst.length-1; i>= 0; i--){
                 if(lst[i].active == false){
                     if(lst[i].dont_count == false){
                         this.monsters_killed ++; 
+                        kill = true;
                     }
                     lst.splice(i,1);
                 }
             }
         }
+        return kill
     }
     // mutates point 
     move_wall(point : point , target : point, amt? : number){
