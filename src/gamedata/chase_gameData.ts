@@ -84,7 +84,6 @@ export let anim_fn : anim_fn_type = function(g: game, globalStore: globalStore_t
 
 export let sound_fn : sound_fn_type = function(g : game, globalStore : globalStore_type ,events : any[]){
     assert_mode(g);
-    console.log(events)
     let lst = [];
     for(let item of events){
         if(item == "collected"){
@@ -151,6 +150,18 @@ export let prop_commands : prop_commands_type = function(g : game,globalStore : 
 
 export let button_click : button_click_type = function(g : game,globalStore : globalStore_type, name : string){
     assert_mode(g);
+    console.log(name);
+    if(name == "sword"){
+        swing_attempt(g, globalStore);
+    }
+    
+    if(name == "repel"){
+        repel_attempt(g, globalStore);
+    }
+    
+    if(name == "fireball"){
+        fireball_attempt(g, globalStore);
+    }
     return [];
 }
 
@@ -174,3 +185,48 @@ export let data_obj : gamedata =  {
     reset_fn: reset_fn,
     prop_fns: {}
 }
+
+export function repel_attempt(g : game, store : globalStore_type){
+    let direction_vector : point = lincomb(1, store.mouse_pos, -1, store.player_pos) as point;  
+    if(direction_vector[0] == 0 && direction_vector[1] == 0){
+      direction_vector = [0,1];
+    }
+    if(g.can_repel && g.time - g.last_repel >= 60){
+        g.cast_repel_spell(direction_vector[0], direction_vector[1], 60,84);
+        store.repel_cast = true;
+    } else if(store.display_contents.length == 0){
+        store.display_contents.push(["Attack on cooldown", g.time + 60]);
+    
+    }
+}
+
+
+export function fireball_attempt(g : game, store : globalStore_type){
+    let direction_vector : point = lincomb(1, store.mouse_pos, -1, store.player_pos) as point;  
+    if(direction_vector[0] == 0 && direction_vector[1] == 0){
+      direction_vector = [0,1];
+    }
+    if(g.can_fireball && g.time - g.last_fireball >= 60){
+        g.cast_fireball_spell(direction_vector[0], direction_vector[1], 60,84);
+        store.fireball_cast = true;
+    } else if(store.display_contents.length == 0){
+        store.display_contents.push(["Attack on cooldown", g.time + 60]);
+      
+    }
+}
+
+export function swing_attempt(g : game, store : globalStore_type){
+    let direction_vector : point = lincomb(1, store.mouse_pos, -1, store.player_pos) as point;  
+    if(direction_vector[0] == 0 && direction_vector[1] == 0){
+      direction_vector = [0,1];
+    }
+    let offset : point = [direction_vector[0] < 0 ? -22 : 22, -23];
+    if(g.can_swing && g.time - g.last_swing >= 30){
+      g.start_swing(100, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2, offset);
+      store.swing_cast = true;
+    }else if(store.display_contents.length == 0){
+      store.display_contents.push(["Attack on cooldown", g.time + 60]);
+    }
+}
+
+

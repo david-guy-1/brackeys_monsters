@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import game, {  repel_spell } from './game';
 
-import { data_obj as chase_obj  } from './chase_gameData';
+import { data_obj as chase_obj, fireball_attempt, repel_attempt, swing_attempt  } from './chase_gameData';
 import { chop_tree, data_obj as maze_obj } from './maze_gameData';
 import { data_obj as potions_obj } from './potions_gameData';
 import { events } from '../EventManager';
@@ -19,7 +19,12 @@ import { prepare_level } from './prepare_level';
 
 // mousemove
 function move_canvas(e : MouseEvent, g:game, store : globalStore_type){
-  if((e.target as HTMLElement).getAttribute("data-key")?.indexOf("main_canvas") != -1){ // topmost canvas element that is valid
+  let target = (e.target as HTMLElement).getAttribute("data-key")
+  if(target == null){
+    target = "";
+  }
+
+  if(target.indexOf("main_canvas") != -1){ // topmost canvas element that is valid
       store.mouse_pos = [e.offsetX, e.offsetY];// set mouse position 
   }
 }
@@ -38,10 +43,6 @@ function click_fn(e : MouseEvent, g : game, store : globalStore_type ){
 }
 
 function keydown(e : KeyboardEvent, g : game, store : globalStore_type ){
-  let direction_vector : point = lincomb(1, store.mouse_pos, -1, store.player_pos) as point;  
-  if(direction_vector[0] == 0 && direction_vector[1] == 0){
-    direction_vector = [0,1];
-  }
   if(g.mode == "maze"){
     if(e.key.toLowerCase() == "w"){
       chop_tree(g, [0, -1], store);
@@ -57,30 +58,14 @@ function keydown(e : KeyboardEvent, g : game, store : globalStore_type ){
     }
   } else if(g.mode != "potions"){
     if(e.key.toLowerCase() == "q"){
-      if(g.can_repel && g.time - g.last_repel >= 60){
-        g.cast_repel_spell(direction_vector[0], direction_vector[1], 60,84);
-        store.repel_cast = true;
-      } else if(store.display_contents.length == 0){
-        store.display_contents.push(["Attack on cooldown", g.time + 60]);
-      }
+      repel_attempt(g, store);
     }
     if(e.key.toLowerCase() == "w"){
-      if(g.can_fireball && g.time - g.last_fireball >= 60){
-        g.cast_fireball_spell(direction_vector[0], direction_vector[1], 60,84);
-        store.fireball_cast = true;
-      }else if(store.display_contents.length == 0){
-        store.display_contents.push(["Attack on cooldown", g.time + 60]);
-      }
+      fireball_attempt(g, store);
     }
+    
     if(e.key.toLowerCase() == "e"){
-      let d = lincomb(1, store.mouse_pos, -1, store.player_pos); 
-      let offset : point = [d[0] < 0 ? -22 : 22, -23];
-      if(g.can_swing && g.time - g.last_swing >= 30){
-        g.start_swing(100, Math.atan2(direction_vector[1], direction_vector[0]),  15,0.2, offset);
-        store.swing_cast = true;
-      }else if(store.display_contents.length == 0){
-        store.display_contents.push(["Attack on cooldown", g.time + 60]);
-      }
+      swing_attempt(g, store);
     }  
   }
 }
@@ -166,6 +151,15 @@ function App() {
       let delay = mode[2] == "potions" || mode[2] == "maze" ? 100 : 1000
       data.prop_fns["victory"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You win!"; setTimeout(() =>transition(["win", mode[1],mode[2]]), delay)}};
       data.prop_fns["defeat"] =  (g,s) => {if(s.flag_msg == undefined){s.flag_msg="You lose!"; setTimeout(() =>transition(["lose", mode[1], mode[2]]), delay)}};
+      if(g?.can_repel){
+        data.display.button.push(["repel", [canvas_size[0] +10, 10, 100, 30], "repel (Q)"])
+      }
+      if(g?.can_fireball){
+        data.display.button.push(["fireball", [canvas_size[0] +10,50, 100, 30], "fireball (W)"])
+      }
+      if(g?.can_swing){
+        data.display.button.push(["sword", [canvas_size[0] +10, 90, 100, 30], "sword (E)"])
+      }
       return <GameDisplay data={data} globalStore={store}/>
       // register event listener;
   }else if (mode == "test"){

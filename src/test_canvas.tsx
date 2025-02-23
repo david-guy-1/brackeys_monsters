@@ -25,7 +25,6 @@ commands = commands.map(x => displace_command(x, scalar_multiple(-1, center) as 
 commands = commands.map(x => scale_command(x, [0,0], 0.25, 0.25));
 // boilerplate 
 
-console.log(JSON.stringify(commands));
 commands = commands.map(x => displace_command(x, [300,300]));
 
 function test_canvas(){
